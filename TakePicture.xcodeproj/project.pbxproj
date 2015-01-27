@@ -14,6 +14,12 @@
 		D077CE6C1A765B1B0082E480 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D077CE6B1A765B1B0082E480 /* Images.xcassets */; };
 		D077CE6F1A765B1B0082E480 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = D077CE6D1A765B1B0082E480 /* LaunchScreen.xib */; };
 		D077CE7B1A765B1B0082E480 /* TakePictureTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D077CE7A1A765B1B0082E480 /* TakePictureTests.m */; };
+		D09D60FD1A771A3E00A5B337 /* CameraManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D09D60FC1A771A3E00A5B337 /* CameraManager.m */; };
+		D09D61001A772C8800A5B337 /* Camera.m in Sources */ = {isa = PBXBuildFile; fileRef = D09D60FF1A772C8800A5B337 /* Camera.m */; };
+		D09D61031A7735A900A5B337 /* TakePictViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D09D61021A7735A900A5B337 /* TakePictViewController.m */; };
+		D09D61081A779F3300A5B337 /* SubmitPictViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D09D61071A779F3300A5B337 /* SubmitPictViewController.m */; };
+		D09D610B1A77A43A00A5B337 /* PreviewPictViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D09D610A1A77A43A00A5B337 /* PreviewPictViewController.m */; };
+		D09D610E1A77B9A600A5B337 /* Utility.m in Sources */ = {isa = PBXBuildFile; fileRef = D09D610D1A77B9A600A5B337 /* Utility.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,6 +46,18 @@
 		D077CE741A765B1B0082E480 /* TakePictureTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TakePictureTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D077CE791A765B1B0082E480 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D077CE7A1A765B1B0082E480 /* TakePictureTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TakePictureTests.m; sourceTree = "<group>"; };
+		D09D60FB1A771A3E00A5B337 /* CameraManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CameraManager.h; sourceTree = "<group>"; };
+		D09D60FC1A771A3E00A5B337 /* CameraManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CameraManager.m; sourceTree = "<group>"; };
+		D09D60FE1A772C8800A5B337 /* Camera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Camera.h; sourceTree = "<group>"; };
+		D09D60FF1A772C8800A5B337 /* Camera.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Camera.m; sourceTree = "<group>"; };
+		D09D61011A7735A900A5B337 /* TakePictViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TakePictViewController.h; sourceTree = "<group>"; };
+		D09D61021A7735A900A5B337 /* TakePictViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TakePictViewController.m; sourceTree = "<group>"; };
+		D09D61061A779F3300A5B337 /* SubmitPictViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SubmitPictViewController.h; sourceTree = "<group>"; };
+		D09D61071A779F3300A5B337 /* SubmitPictViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SubmitPictViewController.m; sourceTree = "<group>"; };
+		D09D61091A77A43A00A5B337 /* PreviewPictViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PreviewPictViewController.h; sourceTree = "<group>"; };
+		D09D610A1A77A43A00A5B337 /* PreviewPictViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PreviewPictViewController.m; sourceTree = "<group>"; };
+		D09D610C1A77B9A600A5B337 /* Utility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Utility.h; sourceTree = "<group>"; };
+		D09D610D1A77B9A600A5B337 /* Utility.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Utility.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,6 +107,18 @@
 				D077CE6B1A765B1B0082E480 /* Images.xcassets */,
 				D077CE6D1A765B1B0082E480 /* LaunchScreen.xib */,
 				D077CE5E1A765B1A0082E480 /* Supporting Files */,
+				D09D60FB1A771A3E00A5B337 /* CameraManager.h */,
+				D09D60FC1A771A3E00A5B337 /* CameraManager.m */,
+				D09D60FE1A772C8800A5B337 /* Camera.h */,
+				D09D60FF1A772C8800A5B337 /* Camera.m */,
+				D09D61011A7735A900A5B337 /* TakePictViewController.h */,
+				D09D61021A7735A900A5B337 /* TakePictViewController.m */,
+				D09D61061A779F3300A5B337 /* SubmitPictViewController.h */,
+				D09D61071A779F3300A5B337 /* SubmitPictViewController.m */,
+				D09D61091A77A43A00A5B337 /* PreviewPictViewController.h */,
+				D09D610A1A77A43A00A5B337 /* PreviewPictViewController.m */,
+				D09D610C1A77B9A600A5B337 /* Utility.h */,
+				D09D610D1A77B9A600A5B337 /* Utility.m */,
 			);
 			path = TakePicture;
 			sourceTree = "<group>";
@@ -168,6 +198,7 @@
 				TargetAttributes = {
 					D077CE5A1A765B1A0082E480 = {
 						CreatedOnToolsVersion = 6.1.1;
+						DevelopmentTeam = B87G722RXC;
 					};
 					D077CE731A765B1B0082E480 = {
 						CreatedOnToolsVersion = 6.1.1;
@@ -220,8 +251,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				D077CE671A765B1A0082E480 /* ViewController.m in Sources */,
+				D09D61081A779F3300A5B337 /* SubmitPictViewController.m in Sources */,
+				D09D61031A7735A900A5B337 /* TakePictViewController.m in Sources */,
+				D09D61001A772C8800A5B337 /* Camera.m in Sources */,
+				D09D610E1A77B9A600A5B337 /* Utility.m in Sources */,
 				D077CE641A765B1A0082E480 /* AppDelegate.m in Sources */,
+				D09D60FD1A771A3E00A5B337 /* CameraManager.m in Sources */,
 				D077CE611A765B1A0082E480 /* main.m in Sources */,
+				D09D610B1A77A43A00A5B337 /* PreviewPictViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -343,6 +380,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = TakePicture/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -354,6 +392,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = TakePicture/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";

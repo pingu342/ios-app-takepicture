@@ -7,6 +7,7 @@
 //
 
 #import "ViewController.h"
+#import "TakePictViewController.h"
 #import <MobileCoreServices/MobileCoreServices.h>
 
 @interface ViewController ()
@@ -87,8 +88,13 @@
 	[[picker parentViewController] dismissViewControllerAnimated: YES completion:nil];
 }
 
-- (IBAction)tapButton:(id)sender {
+- (IBAction)tapImagePickerButton:(id)sender {
 	[self startCameraControllerFromViewController:self usingDelegate:self];
+}
+
+- (IBAction)tapAVFoundationButton:(id)sender {
+	TakePictViewController *viewController = [self.storyboard instantiateViewControllerWithIdentifier:@"TakePictViewController"];
+	[self presentViewController:viewController animated:YES completion:nil];
 }
 
 @end

@@ -10,6 +10,5 @@
 
 @interface ViewController : UIViewController <UINavigationControllerDelegate, UIImagePickerControllerDelegate>
 
-
 @end
 
