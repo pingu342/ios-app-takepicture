@@ -12,6 +12,8 @@
 @interface SubmitPictViewController ()
 
 @property (nonatomic, weak) IBOutlet UIImageView *imagePreview;
+@property (nonatomic, weak) IBOutlet UITextView *comment;
+@property (nonatomic, weak) IBOutlet UIView *content;
 
 @end
 
@@ -23,6 +25,29 @@
 	
 	self.imagePreview.image = self.image;
 	self.imagePreview.contentMode = UIViewContentModeScaleAspectFit;
+	
+	// 影を付ける
+#if 1
+	self.imagePreview.layer.masksToBounds = NO;
+	self.imagePreview.layer.shadowOffset = CGSizeMake(0.0f, 2.0f);
+	self.imagePreview.layer.shadowOpacity = 1.0f;
+	self.imagePreview.layer.shadowColor = [UIColor blackColor].CGColor;
+	self.imagePreview.layer.shadowRadius = 10.0f;
+#endif
+#if 1
+	self.content.layer.masksToBounds = NO;
+	self.content.layer.shadowOffset = CGSizeMake(0.0f, 2.0f);
+	self.content.layer.shadowOpacity = 1.0f;
+	self.content.layer.shadowColor = [UIColor grayColor].CGColor;
+	self.content.layer.shadowRadius = 1.0f;
+#endif
+	
+	// 枠を付ける
+	self.imagePreview.layer.borderWidth = 1.0f;
+	self.imagePreview.layer.borderColor = [[UIColor whiteColor] CGColor];
+	
+	self.comment.layer.cornerRadius = 5.0f;
+	self.comment.clipsToBounds = YES;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -49,6 +74,15 @@
 	PreviewPictViewController *viewController = [self.storyboard instantiateViewControllerWithIdentifier:@"PreviewPictViewController"];
 	viewController.image = self.image;
 	[self presentViewController:viewController animated:YES completion:nil];
+}
+
+
+- (BOOL)prefersStatusBarHidden {
+	return NO;
+}
+
+- (UIStatusBarStyle)preferredStatusBarStyle {
+	return UIStatusBarStyleLightContent;
 }
 
 @end

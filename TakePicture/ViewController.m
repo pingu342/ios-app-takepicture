@@ -97,4 +97,12 @@
 	[self presentViewController:viewController animated:YES completion:nil];
 }
 
+- (BOOL)prefersStatusBarHidden {
+	return NO;
+}
+
+- (UIStatusBarStyle)preferredStatusBarStyle {
+	return UIStatusBarStyleDefault;
+}
+
 @end

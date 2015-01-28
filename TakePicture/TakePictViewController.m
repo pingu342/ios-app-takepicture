@@ -225,4 +225,12 @@
 	[self.cameraPreview.layer addSublayer:previewLayer];
 }
 
+- (BOOL)prefersStatusBarHidden {
+	return NO;
+}
+
+- (UIStatusBarStyle)preferredStatusBarStyle {
+	return UIStatusBarStyleLightContent;
+}
+
 @end

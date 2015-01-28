@@ -56,4 +56,12 @@
 	[self dismissViewControllerAnimated:YES completion:nil];
 }
 
+- (BOOL)prefersStatusBarHidden {
+	return NO;
+}
+
+- (UIStatusBarStyle)preferredStatusBarStyle {
+	return UIStatusBarStyleLightContent;
+}
+
 @end
