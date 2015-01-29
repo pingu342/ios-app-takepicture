@@ -47,6 +47,22 @@
 	[self teardownCapture];
 }
 
+- (void)viewDidLayoutSubviews {
+	NSLog(@"viewDidLayoutSubviews");
+	[super viewDidLayoutSubviews];
+	[self setCapturePreviewLayer:self.previewLayer];
+	[self.view layoutIfNeeded];
+}
+
+- (BOOL)shouldAutorotate {
+	return NO;	// 画面を回転させない
+}
+
+- (NSUInteger)supportedInterfaceOrientations {
+	return UIInterfaceOrientationMaskLandscapeRight;	//画面向きをランドスケープ(ホームボタン右)で固定
+}
+
+
 /*
 #pragma mark - Navigation
 
@@ -162,8 +178,6 @@
 	
 	[session startRunning];
 	
-	[self setPreviewLayer:self.previewLayer];
-	
 	self.captureSession = session;
 	self.captureInput = input;
 	self.captureOutput = output;
@@ -203,12 +217,14 @@
 
 }
 
-- (void)setPreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
+- (void)setCapturePreviewLayer:(AVCaptureVideoPreviewLayer *)previewLayer {
 	
 	previewLayer.backgroundColor = [[UIColor blackColor] CGColor];
 	previewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
 	//previewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
 	previewLayer.frame = self.cameraPreview.bounds;
+	
+	NSLog(NSStringFromCGRect(self.cameraPreview.bounds));
 	
 	[self.cameraPreview.layer setMasksToBounds:YES];
 	

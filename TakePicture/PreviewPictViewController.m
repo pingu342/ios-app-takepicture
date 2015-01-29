@@ -38,6 +38,14 @@
     // Dispose of any resources that can be recreated.
 }
 
+- (BOOL)shouldAutorotate {
+	return NO;	// 画面を回転させない
+}
+
+- (NSUInteger)supportedInterfaceOrientations {
+	return UIInterfaceOrientationMaskLandscapeRight;	//画面向きをランドスケープ(ホームボタン右)で固定
+}
+
 /*
 #pragma mark - Navigation
 
