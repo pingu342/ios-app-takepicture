@@ -7,9 +7,8 @@
 //
 
 #import "TakePictViewController.h"
-#import "SubmitPictViewController.h"
+#import "SubmitContainerViewController.h"
 #import "CameraManager.h"
-#import "Utility.h"
 
 #import <ImageIO/ImageIO.h>
 
@@ -48,7 +47,7 @@
 }
 
 - (void)viewDidLayoutSubviews {
-	NSLog(@"viewDidLayoutSubviews");
+	//NSLog(@"viewDidLayoutSubviews");
 	[super viewDidLayoutSubviews];
 	[self setCapturePreviewLayer:self.previewLayer];
 	[self.view layoutIfNeeded];
@@ -206,7 +205,7 @@
 		 //[self.imagePreview setImage:image];
 		 //[self.imagePreview setContentMode:UIViewContentModeScaleAspectFit];
 		 
-		 SubmitPictViewController *viewController = [self.storyboard instantiateViewControllerWithIdentifier:@"SubmitPictViewController"];
+		 SubmitContainerViewController *viewController = [self.storyboard instantiateViewControllerWithIdentifier:@"SubmitContainerViewController"];
 		 viewController.image = image;
 		 [self presentViewController:viewController animated:YES completion:nil];
 		 
@@ -224,7 +223,7 @@
 	//previewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
 	previewLayer.frame = self.cameraPreview.bounds;
 	
-	NSLog(NSStringFromCGRect(self.cameraPreview.bounds));
+	//NSLog(NSStringFromCGRect(self.cameraPreview.bounds));
 	
 	[self.cameraPreview.layer setMasksToBounds:YES];
 	

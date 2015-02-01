@@ -1,22 +1,22 @@
 //
-//  SubmitPictViewController.m
+//  SubmitPictWithCommentViewController.m
 //  TakePicture
 //
-//  Created by Masakiyo on 2015/01/27.
+//  Created by Masakiyo on 2015/02/01.
 //  Copyright (c) 2015年 saka. All rights reserved.
 //
 
-#import "SubmitPictViewController.h"
-#import "PreviewPictViewController.h"
 #import "SubmitPictWithCommentViewController.h"
+#import "PreviewPictViewController.h"
 
-@interface SubmitPictViewController ()
+@interface SubmitPictWithCommentViewController ()
 
 @property (nonatomic, weak) IBOutlet UIImageView *imagePreview;
+@property (nonatomic, weak) IBOutlet UITextView *commentView;
 
 @end
 
-@implementation SubmitPictViewController
+@implementation SubmitPictWithCommentViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -35,9 +35,6 @@
 	// self.imagePreviewに枠を付ける
 	self.imagePreview.layer.borderWidth = 1.0f;
 	self.imagePreview.layer.borderColor = [[UIColor whiteColor] CGColor];
-	
-	//self.comment.layer.cornerRadius = 5.0f;
-	//self.comment.clipsToBounds = YES;
 }
 
 - (void)didReceiveMemoryWarning {
