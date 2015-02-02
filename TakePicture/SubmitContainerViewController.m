@@ -29,12 +29,14 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view.
 	
+#if 0
 	// self.contentViewに影を付ける
 	self.contentView.layer.masksToBounds = NO;
 	self.contentView.layer.shadowOffset = CGSizeMake(0.0f, 0.0f);
 	self.contentView.layer.shadowOpacity = 1.0f;
 	self.contentView.layer.shadowColor = [UIColor grayColor].CGColor;
 	self.contentView.layer.shadowRadius = 1.0f;
+#endif
 	
 	// self.contentViewに表示するビューコントローラのインスタンスを作成
 	self.pictViewController = [self.storyboard instantiateViewControllerWithIdentifier:@"SubmitPictViewController"];

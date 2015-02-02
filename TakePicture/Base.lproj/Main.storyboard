@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="6254" systemVersion="14C109" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="vXZ-lx-hvc">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="6254" systemVersion="14B25" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="vXZ-lx-hvc">
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="6247"/>
@@ -101,10 +101,10 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="vag-sj-o2m">
-                                <rect key="frame" x="0.0" y="0.0" width="600" height="510"/>
+                                <rect key="frame" x="0.0" y="0.0" width="600" height="516"/>
                                 <subviews>
                                     <imageView multipleTouchEnabled="YES" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="wcK-ss-Ioi">
-                                        <rect key="frame" x="17" y="53" width="566" height="424"/>
+                                        <rect key="frame" x="48" y="79" width="504" height="378"/>
                                         <gestureRecognizers/>
                                         <constraints>
                                             <constraint firstAttribute="width" secondItem="wcK-ss-Ioi" secondAttribute="height" multiplier="4:3" id="L7h-Hh-e6u"/>
@@ -118,16 +118,16 @@
                                 <constraints>
                                     <constraint firstAttribute="centerX" secondItem="wcK-ss-Ioi" secondAttribute="centerX" id="5w6-XN-T8g"/>
                                     <constraint firstAttribute="centerY" secondItem="wcK-ss-Ioi" secondAttribute="centerY" constant="-10" id="WWX-ta-8md"/>
-                                    <constraint firstItem="wcK-ss-Ioi" firstAttribute="height" secondItem="vag-sj-o2m" secondAttribute="height" multiplier="0.8" constant="16" id="ndw-uf-Dcn"/>
+                                    <constraint firstItem="wcK-ss-Ioi" firstAttribute="height" secondItem="vag-sj-o2m" secondAttribute="height" multiplier="0.7" constant="16" id="ndw-uf-Dcn"/>
                                 </constraints>
                             </view>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="5ua-q8-bOV">
-                                <rect key="frame" x="0.0" y="510" width="600" height="90"/>
+                                <rect key="frame" x="0.0" y="516" width="600" height="84"/>
                                 <subviews>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="29y-cc-uS8">
-                                        <rect key="frame" x="260" y="34" width="80" height="56"/>
+                                        <rect key="frame" x="260" y="34" width="80" height="50"/>
                                         <constraints>
-                                            <constraint firstAttribute="height" constant="56" id="1HE-bm-6v6"/>
+                                            <constraint firstAttribute="height" constant="50" id="1HE-bm-6v6"/>
                                         </constraints>
                                         <fontDescription key="fontDescription" type="system" pointSize="20"/>
                                         <inset key="contentEdgeInsets" minX="0.0" minY="-10" maxX="0.0" maxY="0.0"/>
@@ -157,7 +157,7 @@
                                     <constraint firstAttribute="centerX" secondItem="Mxa-aj-CPz" secondAttribute="centerX" id="GVw-ZY-OOQ"/>
                                     <constraint firstAttribute="centerX" secondItem="29y-cc-uS8" secondAttribute="centerX" id="QzT-7W-fNc"/>
                                     <constraint firstItem="29y-cc-uS8" firstAttribute="top" secondItem="Mxa-aj-CPz" secondAttribute="bottom" id="SZl-9t-LqX"/>
-                                    <constraint firstAttribute="height" constant="90" id="vu8-hZ-GEF"/>
+                                    <constraint firstAttribute="height" constant="84" id="vu8-hZ-GEF"/>
                                     <constraint firstItem="Mxa-aj-CPz" firstAttribute="top" secondItem="5ua-q8-bOV" secondAttribute="top" id="zsu-TN-Anq"/>
                                 </constraints>
                             </view>
@@ -196,7 +196,7 @@
                         <viewControllerLayoutGuide type="top" id="Fte-Q6-dQd"/>
                         <viewControllerLayoutGuide type="bottom" id="kTQ-p8-BZh"/>
                     </layoutGuides>
-                    <view key="view" alpha="0.79999999999999993" contentMode="scaleToFill" id="Cnx-Sb-jij">
+                    <view key="view" alpha="0.90000000000000002" contentMode="scaleToFill" id="Cnx-Sb-jij">
                         <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
@@ -373,10 +373,10 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="0Pi-AX-GTT">
-                                <rect key="frame" x="0.0" y="0.0" width="600" height="512"/>
+                                <rect key="frame" x="0.0" y="0.0" width="600" height="516"/>
                                 <subviews>
                                     <imageView multipleTouchEnabled="YES" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="Aec-PL-gYE">
-                                        <rect key="frame" x="18" y="174" width="273" height="204"/>
+                                        <rect key="frame" x="18" y="176" width="273" height="204"/>
                                         <gestureRecognizers/>
                                         <constraints>
                                             <constraint firstAttribute="width" secondItem="Aec-PL-gYE" secondAttribute="height" multiplier="4:3" id="rgM-he-rZI"/>
@@ -386,19 +386,19 @@
                                         </connections>
                                     </imageView>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="tcz-D4-8Sf">
-                                        <rect key="frame" x="291" y="247" width="18" height="18"/>
+                                        <rect key="frame" x="291" y="249" width="18" height="18"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="18" id="rAq-ay-Fqu"/>
                                         </constraints>
                                     </view>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="qEm-o8-B99">
-                                        <rect key="frame" x="582" y="247" width="18" height="18"/>
+                                        <rect key="frame" x="582" y="249" width="18" height="18"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="18" id="Zyf-fl-P25"/>
                                         </constraints>
                                     </view>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="i7P-Hj-fJ6">
-                                        <rect key="frame" x="0.0" y="247" width="18" height="18"/>
+                                        <rect key="frame" x="0.0" y="249" width="18" height="18"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="18" id="Rtq-f7-RTq"/>
                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="8" id="vPf-Ds-v1V"/>
@@ -410,7 +410,7 @@
                                         </variation>
                                     </view>
                                     <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="V1x-EC-dny">
-                                        <rect key="frame" x="309" y="174" width="273" height="204"/>
+                                        <rect key="frame" x="309" y="176" width="273" height="204"/>
                                         <string key="text">Lorem ipsum dolor sit er elit lamet, consectetaur cillium adipisicing pecu, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Nam liber te conscient to factor tum poen legum odioque civiuda.</string>
                                         <color key="textColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="14"/>
@@ -448,7 +448,7 @@
                                 </variation>
                             </view>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="m9C-K3-2Qa">
-                                <rect key="frame" x="0.0" y="512" width="600" height="88"/>
+                                <rect key="frame" x="0.0" y="516" width="600" height="84"/>
                                 <subviews>
                                     <button opaque="NO" userInteractionEnabled="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="aok-uC-7fe">
                                         <rect key="frame" x="200" y="0.0" width="200" height="34"/>
@@ -467,10 +467,10 @@
                                         </variation>
                                     </button>
                                     <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5Qh-nS-w9R">
-                                        <rect key="frame" x="260" y="34" width="80" height="54"/>
+                                        <rect key="frame" x="260" y="34" width="80" height="50"/>
                                         <constraints>
                                             <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="204" id="Jga-gP-lr3"/>
-                                            <constraint firstAttribute="height" constant="54" id="eCF-y2-Azi"/>
+                                            <constraint firstAttribute="height" constant="50" id="eCF-y2-Azi"/>
                                         </constraints>
                                         <fontDescription key="fontDescription" type="system" pointSize="20"/>
                                         <inset key="contentEdgeInsets" minX="0.0" minY="-10" maxX="0.0" maxY="0.0"/>
@@ -495,7 +495,7 @@
                                     <constraint firstAttribute="centerY" secondItem="aok-uC-7fe" secondAttribute="centerY" id="6Pk-VI-hz7"/>
                                     <constraint firstAttribute="centerX" secondItem="aok-uC-7fe" secondAttribute="centerX" id="LXx-wl-Sds"/>
                                     <constraint firstItem="aok-uC-7fe" firstAttribute="top" secondItem="m9C-K3-2Qa" secondAttribute="top" id="beI-sp-iZu"/>
-                                    <constraint firstAttribute="height" constant="88" id="cas-bB-edO"/>
+                                    <constraint firstAttribute="height" constant="84" id="cas-bB-edO"/>
                                     <constraint firstItem="5Qh-nS-w9R" firstAttribute="leading" secondItem="aok-uC-7fe" secondAttribute="trailing" constant="24" id="duY-Ws-gcM"/>
                                     <constraint firstItem="5Qh-nS-w9R" firstAttribute="top" secondItem="aok-uC-7fe" secondAttribute="bottom" id="o3F-kq-x0H"/>
                                     <constraint firstAttribute="centerX" secondItem="5Qh-nS-w9R" secondAttribute="centerX" id="pb3-fb-Lho"/>
