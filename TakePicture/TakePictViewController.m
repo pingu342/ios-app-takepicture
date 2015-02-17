@@ -9,10 +9,17 @@
 #import "TakePictViewController.h"
 #import "PreviewPictViewController.h"
 #import "CameraManager.h"
+#import "DeviceSystemVersion.h"
 
 #import <ImageIO/ImageIO.h>
 
 #define RAW_IMAGE
+
+typedef NS_ENUM(NSInteger, FocusMode) {
+	FocusModeAuto,
+	FocusModeManual,
+	FocusModeLocked
+};
 
 @interface TakePictViewController () {
 }
@@ -20,10 +27,18 @@
 @property (nonatomic, weak) IBOutlet UIView *cameraPreview;
 //@property (nonatomic, weak) IBOutlet UIImageView *imagePreview;
 @property (nonatomic) AVCaptureSession *captureSession;
+@property (nonatomic) AVCaptureDevice *captureDevice;
 @property (nonatomic) AVCaptureDeviceInput *captureInput;
 @property (nonatomic) AVCaptureStillImageOutput *captureOutput;
 @property (nonatomic) AVCaptureConnection *captureConnection;
 @property (nonatomic) AVCaptureVideoPreviewLayer *previewLayer;
+@property (nonatomic, weak) IBOutlet UISlider *slider;
+@property (nonatomic, weak) IBOutlet UIButton *zoomButton;
+@property (nonatomic, weak) IBOutlet UILabel *zoomValue;
+@property (nonatomic, weak) IBOutlet UIButton *focusButton;
+@property (nonatomic, weak) IBOutlet UILabel *focusValue;
+@property (nonatomic) BOOL autoZoom;
+@property (nonatomic) FocusMode focusMode;
 
 @end
 
@@ -32,6 +47,11 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
+	
+	if ([DeviceSystemVersion sharedInstance].major <= 7) {
+		self.focusButton.hidden = YES;
+		self.focusValue.hidden = YES;
+	}
 }
 
 - (void)didReceiveMemoryWarning {
@@ -42,6 +62,12 @@
 - (void)viewWillAppear:(BOOL)animated {
 	[super viewWillAppear:animated];
 	[self setupCapture];
+	
+	self.slider.hidden = YES;
+	self.zoomValue.text = @"x1.0";
+	self.focusValue.text = @"自動";
+	self.autoZoom = YES;
+	self.focusMode = FocusModeAuto;
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -93,6 +119,7 @@
 	[self.captureSession removeOutput:self.captureOutput];
 	[self.previewLayer removeFromSuperlayer];
 	self.captureSession = nil;
+	self.captureDevice = nil;
 	self.captureInput = nil;
 	self.captureOutput = nil;
 	self.captureConnection = nil;
@@ -224,6 +251,7 @@
 	[session startRunning];
 	
 	self.captureSession = session;
+	self.captureDevice = captureDevice;
 	self.captureInput = input;
 	self.captureOutput = output;
 	self.captureConnection = connection;
@@ -341,6 +369,122 @@
 
 - (UIStatusBarStyle)preferredStatusBarStyle {
 	return UIStatusBarStyleLightContent;
+}
+
+- (IBAction)zoomButtonTapped:(id)sender {
+	BOOL autoZoom = !self.autoZoom;
+	
+	if (!autoZoom) {
+		NSLog(@"videoMaxZoomFactor=%f", self.captureDevice.activeFormat.videoMaxZoomFactor);
+		
+		CGFloat max = 8.0;
+		self.slider.minimumValue = 1.0;
+		self.slider.hidden = NO;
+		self.slider.maximumValue = self.captureDevice.activeFormat.videoMaxZoomFactor;
+		self.slider.maximumValue = self.slider.maximumValue > max ? max : self.slider.maximumValue;
+		self.slider.value = self.captureDevice.videoZoomFactor;
+		self.slider.continuous = YES;
+		[self.slider addTarget:self action:@selector(zoomValueChanged:) forControlEvents:UIControlEventValueChanged];
+		
+		self.focusButton.enabled = NO;
+		self.autoZoom = autoZoom;
+	} else {
+		self.slider.hidden = YES;
+		[self.slider removeTarget:self action:@selector(zoomValueChanged:) forControlEvents:UIControlEventValueChanged];
+		
+		self.focusButton.enabled = YES;
+		self.autoZoom = autoZoom;
+	}
+}
+
+- (IBAction)focusButtonTapped:(id)sender {
+	FocusMode focusMode;
+	if (self.focusMode == FocusModeAuto) {
+		focusMode = FocusModeManual;
+	} else if (self.focusMode == FocusModeManual) {
+		focusMode = FocusModeLocked;
+	} else {
+		focusMode = FocusModeAuto;
+	}
+	NSError *error;
+	
+	if (focusMode == FocusModeAuto) {
+		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
+			if ([self.captureDevice lockForConfiguration:&error]) {
+				self.captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
+				[self.captureDevice unlockForConfiguration];
+				self.focusValue.text = @"自動";
+				
+				self.slider.hidden = YES;
+				[self.slider removeTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
+				
+				self.zoomButton.enabled = YES;
+				self.focusMode = focusMode;
+			}
+		}
+	} else if (focusMode == FocusModeManual) {
+		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) {
+			if ([self.captureDevice lockForConfiguration:&error]) {
+				self.captureDevice.focusMode = AVCaptureFocusModeLocked;
+				[self.captureDevice unlockForConfiguration];
+				self.focusValue.text = @"手動";
+				
+				self.slider.hidden = NO;
+				self.slider.minimumValue = 0.0; // 最も近い
+				self.slider.maximumValue = 1.0;
+				if ([AVCaptureDevice instancesRespondToSelector:@selector(lensPosition)]) {
+					NSLog(@"lensPosition");
+					self.slider.value = self.captureDevice.lensPosition;
+				} else {
+					self.slider.value = 0.0;
+				}
+				self.slider.continuous = YES;
+				[self.slider addTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
+				
+				self.zoomButton.enabled = NO;
+				self.focusMode = focusMode;
+			}
+		}
+	} else {
+		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) {
+			if ([self.captureDevice lockForConfiguration:&error]) {
+				self.captureDevice.focusMode = AVCaptureFocusModeLocked;
+				[self.captureDevice unlockForConfiguration];
+				self.focusValue.text = @"固定";
+				
+				self.slider.hidden = YES;
+				[self.slider removeTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
+				
+				self.zoomButton.enabled = YES;
+				self.focusMode = focusMode;
+			}
+		}
+	}
+}
+
+- (void)zoomValueChanged:(UISlider *)slider {
+	NSLog(@"zoomValueChanged %f", slider.value);
+	NSError *error;
+	
+	if ([self.captureDevice lockForConfiguration:&error]) {
+		[self.captureDevice setVideoZoomFactor:slider.value];
+		[self.captureDevice unlockForConfiguration];
+		self.zoomValue.text = [NSString stringWithFormat:@"%0.1f", slider.value];
+	}
+}
+
+- (void)focusValueChanged:(UISlider *)slider {
+	NSLog(@"focusValueChanged %f", slider.value);
+	NSError *error;
+	
+	if ([AVCaptureDevice instancesRespondToSelector:@selector(setFocusModeLockedWithLensPosition:completionHandler:)]) {
+		if (![self.captureDevice isAdjustingFocus]) {
+			if ([self.captureDevice lockForConfiguration:&error]) {
+				[self.captureDevice setFocusModeLockedWithLensPosition:slider.value completionHandler:^(CMTime syncTime) {
+				}];
+			}
+		}
+	}
 }
 
 @end

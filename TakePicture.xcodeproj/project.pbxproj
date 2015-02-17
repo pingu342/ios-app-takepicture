@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D00492031A934BCB0021ADDC /* DeviceSystemVersion.m in Sources */ = {isa = PBXBuildFile; fileRef = D00492021A934BCB0021ADDC /* DeviceSystemVersion.m */; };
 		D077CE611A765B1A0082E480 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = D077CE601A765B1A0082E480 /* main.m */; };
 		D077CE641A765B1A0082E480 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = D077CE631A765B1A0082E480 /* AppDelegate.m */; };
 		D077CE671A765B1A0082E480 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D077CE661A765B1A0082E480 /* ViewController.m */; };
@@ -31,6 +32,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		D00492011A934BCB0021ADDC /* DeviceSystemVersion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DeviceSystemVersion.h; sourceTree = "<group>"; };
+		D00492021A934BCB0021ADDC /* DeviceSystemVersion.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DeviceSystemVersion.m; sourceTree = "<group>"; };
 		D077CE5B1A765B1A0082E480 /* TakePicture.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TakePicture.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D077CE5F1A765B1A0082E480 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D077CE601A765B1A0082E480 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -109,6 +112,8 @@
 				D09D61021A7735A900A5B337 /* TakePictViewController.m */,
 				D09D61091A77A43A00A5B337 /* PreviewPictViewController.h */,
 				D09D610A1A77A43A00A5B337 /* PreviewPictViewController.m */,
+				D00492011A934BCB0021ADDC /* DeviceSystemVersion.h */,
+				D00492021A934BCB0021ADDC /* DeviceSystemVersion.m */,
 			);
 			path = TakePicture;
 			sourceTree = "<group>";
@@ -243,6 +248,7 @@
 				D077CE671A765B1A0082E480 /* ViewController.m in Sources */,
 				D09D61031A7735A900A5B337 /* TakePictViewController.m in Sources */,
 				D09D61001A772C8800A5B337 /* Camera.m in Sources */,
+				D00492031A934BCB0021ADDC /* DeviceSystemVersion.m in Sources */,
 				D077CE641A765B1A0082E480 /* AppDelegate.m in Sources */,
 				D09D60FD1A771A3E00A5B337 /* CameraManager.m in Sources */,
 				D077CE611A765B1A0082E480 /* main.m in Sources */,
