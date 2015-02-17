@@ -7,7 +7,7 @@
 //
 
 #import "TakePictViewController.h"
-#import "SubmitContainerViewController.h"
+#import "PreviewPictViewController.h"
 #import "CameraManager.h"
 
 #import <ImageIO/ImageIO.h>
@@ -205,7 +205,7 @@
 		 //[self.imagePreview setImage:image];
 		 //[self.imagePreview setContentMode:UIViewContentModeScaleAspectFit];
 		 
-		 SubmitContainerViewController *viewController = [self.storyboard instantiateViewControllerWithIdentifier:@"SubmitContainerViewController"];
+		 PreviewPictViewController *viewController = [self.storyboard instantiateViewControllerWithIdentifier:@"PreviewPictViewController"];
 		 viewController.image = image;
 		 [self presentViewController:viewController animated:YES completion:nil];
 		 
