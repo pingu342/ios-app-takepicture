@@ -12,7 +12,10 @@
 
 #import <ImageIO/ImageIO.h>
 
-@interface TakePictViewController ()
+#define RAW_IMAGE
+
+@interface TakePictViewController () {
+}
 
 @property (nonatomic, weak) IBOutlet UIView *cameraPreview;
 //@property (nonatomic, weak) IBOutlet UIImageView *imagePreview;
@@ -109,12 +112,46 @@
 	
 	AVCaptureSession *session = [AVCaptureSession new];
 	
-	NSString *sessionPreset = AVCaptureSessionPreset640x480;
+	NSString *sessionPreset = AVCaptureSessionPresetPhoto;//AVCaptureSessionPreset640x480;
 	if ([session canSetSessionPreset:sessionPreset]) {
 		[session setSessionPreset:sessionPreset];
 	} else {
 		NSLog(@"session preset error");
 		return;
+	}
+	
+	// フォーカスモードを確認
+	switch (captureDevice.focusMode) {
+		case AVCaptureFocusModeLocked:
+			NSLog(@"focus=locked");
+			break;
+		case AVCaptureFocusModeAutoFocus:
+			NSLog(@"focus=auto");
+			break;
+		case AVCaptureFocusModeContinuousAutoFocus:
+			NSLog(@"focus=conituous_auto");
+			break;
+	}
+	
+	// フラッシュモードをautoに変更
+	if ([captureDevice hasFlash] ) {
+		if ([captureDevice lockForConfiguration:&error]) {
+			[captureDevice setFlashMode:AVCaptureFlashModeAuto];
+			[captureDevice unlockForConfiguration];
+		}
+	}
+	
+	// フラッシュモードを確認
+	switch (captureDevice.flashMode) {
+		case AVCaptureFlashModeOff:
+			NSLog(@"flash=off");
+			break;
+		case AVCaptureFlashModeOn:
+			NSLog(@"flash=on");
+			break;
+		case AVCaptureFlashModeAuto:
+			NSLog(@"flash=auto");
+			break;
 	}
 	
 	error = nil;
@@ -131,8 +168,17 @@
 		return;
 	}
 	
+	// On iOS the currently the only supported keys are AVVideoCodecKey and kCVPixelBufferPixelFormatTypeKey.
+	// The keys are mutually exclusive, only one may be present.
+	// The recommended values are kCMVideoCodecType_JPEG for AVVideoCodecKey and kCVPixelFormatType_420YpCbCr8BiPlanarFullRange and kCVPixelFormatType_32BGRA for kCVPixelBufferPixelFormatTypeKey.
+	
 	AVCaptureStillImageOutput *output = [[AVCaptureStillImageOutput alloc] init];
-	NSDictionary *outputSettings = @{ AVVideoCodecKey : AVVideoCodecJPEG};
+#ifndef RAW_IMAGE
+	NSDictionary *outputSettings = @{ AVVideoCodecKey : AVVideoCodecJPEG}; //カメラ出力にJPEGを指定
+#else /*RAW_IMAGE*/
+	NSDictionary *outputSettings = @{ (__bridge_transfer NSString *)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA)}; //無圧縮を指定
+#endif /*RAW_IMAGE*/
+	
 	[output setOutputSettings:outputSettings];
 	
 	if ([session canAddOutput:output]) {
@@ -195,22 +241,41 @@
 		 CFDictionaryRef exifAttachments = CMGetAttachment(imageSampleBuffer, kCGImagePropertyExifDictionary, NULL);
 		 if (exifAttachments) {
 			 // Do something with the attachments.
+			 
+			 // Exifをリードするサンプル
+			 NSDictionary *exifDict = (__bridge NSDictionary*)exifAttachments;
+			 NSLog(@"exifDict: %@", exifDict);
+			 NSLog(@"size: %dx%d", [[exifDict objectForKey:@"PixelXDimension"] intValue], [[exifDict objectForKey:@"PixelYDimension"] intValue]);
 		 }
 		 
-		 // 入力された画像データからJPEGフォーマットとしてデータを取得
-		 NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageSampleBuffer];
+		 // オリジナル画像を作成
+#ifndef RAW_IMAGE
+		 // カメラ出力JPEGからUIImageを生成
+		 NSData *pictData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageSampleBuffer];
+		 NSLog(@"pictData: %d bytes", pictData.length);
+		 UIImage *original = [[UIImage alloc] initWithData:pictData];
+#else /*RAW_IMAGE*/
+		 // カメラ出力RAW(Bitmap)からUIImageを生成
+		 UIImage *original = [self imageFromSampleBuffer:imageSampleBuffer];
+#endif /*RAW_IMAGE*/
 		 
-		 // JPEGデータからUIImageを作成
-		 UIImage *image = [[UIImage alloc] initWithData:imageData];
-		 //[self.imagePreview setImage:image];
-		 //[self.imagePreview setContentMode:UIViewContentModeScaleAspectFit];
+		 // サムネイル画像を作成
+		 UIImage *thumbnail;
+		 CGFloat height = 240, width = 320;
+		 
+		 UIGraphicsBeginImageContext(CGSizeMake(width, height));
+		 [original drawInRect:CGRectMake(0, 0, width, height)];
+		 thumbnail = UIGraphicsGetImageFromCurrentImageContext();
+		 UIGraphicsEndImageContext();
+		 
+		 // オリジナル画像のサイズ
+		 NSLog(@"image: %@", NSStringFromCGSize(original.size));
 		 
 		 PreviewPictViewController *viewController = [self.storyboard instantiateViewControllerWithIdentifier:@"PreviewPictViewController"];
-		 viewController.image = image;
+		 viewController.image = original;
 		 [self presentViewController:viewController animated:YES completion:nil];
 		 
-		 NSLog(@"completed");
-		 
+		 // カメラを終了
 		 [self teardownCapture];
 	 }];
 
@@ -239,6 +304,36 @@
 	
 	[self.cameraPreview.layer addSublayer:previewLayer];
 }
+
+#ifdef RAW_IMAGE
+/// Create a UIImage from sample buffer data
+- (UIImage *) imageFromSampleBuffer:(CMSampleBufferRef) sampleBuffer {
+	CVImageBufferRef imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+	CVPixelBufferLockBaseAddress(imageBuffer,0);        // Lock the image buffer
+	
+	uint8_t *baseAddress = (uint8_t *)CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 0);   // Get information of the image
+	size_t bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer);
+	size_t width = CVPixelBufferGetWidth(imageBuffer);
+	size_t height = CVPixelBufferGetHeight(imageBuffer);
+	CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+	
+	CGContextRef newContext = CGBitmapContextCreate(baseAddress, width, height, 8, bytesPerRow, colorSpace, kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst);
+	CGImageRef newImage = CGBitmapContextCreateImage(newContext);
+	CGContextRelease(newContext);
+	
+	CGColorSpaceRelease(colorSpace);
+	CVPixelBufferUnlockBaseAddress(imageBuffer,0);
+	/* CVBufferRelease(imageBuffer); */  // do not call this!
+	
+	UIImage *image = [UIImage imageWithCGImage:newImage
+										 scale:1.0f
+								   orientation:UIImageOrientationUp];
+	
+	CGImageRelease(newImage);
+	
+	return image;
+}
+#endif /*RAW_IMAGE*/
 
 - (BOOL)prefersStatusBarHidden {
 	return NO;
