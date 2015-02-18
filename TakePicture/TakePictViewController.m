@@ -15,10 +15,10 @@
 
 #define RAW_IMAGE
 
-typedef NS_ENUM(NSInteger, FocusMode) {
-	FocusModeAuto,
-	FocusModeManual,
-	FocusModeLocked
+typedef NS_ENUM(NSInteger, MyFocusMode) {
+	MyFocusModeAuto,
+	MyFocusModeManual,
+	MyFocusModeLocked
 };
 
 @interface TakePictViewController () {
@@ -37,8 +37,8 @@ typedef NS_ENUM(NSInteger, FocusMode) {
 @property (nonatomic, weak) IBOutlet UILabel *zoomValue;
 @property (nonatomic, weak) IBOutlet UIButton *focusButton;
 @property (nonatomic, weak) IBOutlet UILabel *focusValue;
-@property (nonatomic) BOOL autoZoom;
-@property (nonatomic) FocusMode focusMode;
+@property (nonatomic) BOOL zoomMode;
+@property (nonatomic) MyFocusMode focusMode;
 
 @end
 
@@ -66,8 +66,8 @@ typedef NS_ENUM(NSInteger, FocusMode) {
 	self.slider.hidden = YES;
 	self.zoomValue.text = @"x1.0";
 	self.focusValue.text = @"自動";
-	self.autoZoom = YES;
-	self.focusMode = FocusModeAuto;
+	self.zoomMode = NO;
+	self.focusMode = MyFocusModeAuto;
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -372,77 +372,96 @@ typedef NS_ENUM(NSInteger, FocusMode) {
 }
 
 - (IBAction)zoomButtonTapped:(id)sender {
-	BOOL autoZoom = !self.autoZoom;
 	
-	if (!autoZoom) {
+	// ズームモード切替（固定(NO) -> ズーム(YES)）
+	BOOL zoomMode = !self.zoomMode;
+	
+	if (zoomMode) {
 		NSLog(@"videoMaxZoomFactor=%f", self.captureDevice.activeFormat.videoMaxZoomFactor);
+		self.zoomMode = YES;
 		
-		CGFloat max = 8.0;
+		// スライダーを表示
+		CGFloat maxZoom = 8.0;
 		self.slider.minimumValue = 1.0;
 		self.slider.hidden = NO;
 		self.slider.maximumValue = self.captureDevice.activeFormat.videoMaxZoomFactor;
-		self.slider.maximumValue = self.slider.maximumValue > max ? max : self.slider.maximumValue;
+		self.slider.maximumValue = self.slider.maximumValue > maxZoom ? maxZoom : self.slider.maximumValue;
 		self.slider.value = self.captureDevice.videoZoomFactor;
 		self.slider.continuous = YES;
 		[self.slider addTarget:self action:@selector(zoomValueChanged:) forControlEvents:UIControlEventValueChanged];
 		
+		// フォーカスとズームを同時に操作することは禁止
 		self.focusButton.enabled = NO;
-		self.autoZoom = autoZoom;
 	} else {
+		self.zoomMode = NO;
+		
+		// スライダーを消す
 		self.slider.hidden = YES;
 		[self.slider removeTarget:self action:@selector(zoomValueChanged:) forControlEvents:UIControlEventValueChanged];
 		
+		// フォーカスのモード変更を許可
 		self.focusButton.enabled = YES;
-		self.autoZoom = autoZoom;
 	}
 }
 
 - (IBAction)focusButtonTapped:(id)sender {
-	FocusMode focusMode;
-	if (self.focusMode == FocusModeAuto) {
-		focusMode = FocusModeManual;
-	} else if (self.focusMode == FocusModeManual) {
-		focusMode = FocusModeLocked;
-	} else {
-		focusMode = FocusModeAuto;
-	}
+	MyFocusMode focusMode;
 	NSError *error;
 	
-	if (focusMode == FocusModeAuto) {
+	// フォーカスモード切替 (自動 -> 手動 -> 固定)
+	if (self.focusMode == MyFocusModeAuto) {
+		focusMode = MyFocusModeManual;
+	} else if (self.focusMode == MyFocusModeManual) {
+		focusMode = MyFocusModeLocked;
+	} else {
+		focusMode = MyFocusModeAuto;
+	}
+	
+	if (focusMode == MyFocusModeAuto) {
+		// カメラが自動でフォーカスするモードに切り換える
+		// このモードではfocusModeをContinuousAutoFocusに設定する
 		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
 			if ([self.captureDevice lockForConfiguration:&error]) {
 				self.captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
 				[self.captureDevice unlockForConfiguration];
+				
+				self.focusMode = MyFocusModeAuto;
 				self.focusValue.text = @"自動";
 				
+				// スライダーを消す
 				self.slider.hidden = YES;
 				[self.slider removeTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
 				
+				// ズームモードを許可
 				self.zoomButton.enabled = YES;
-				self.focusMode = focusMode;
 			}
 		}
-	} else if (focusMode == FocusModeManual) {
-		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) {
+	} else if (focusMode == MyFocusModeManual) {
+		// スライダー操作によりマニュアルでフォーカスを設定するモードに切り替える
+		// このモードではfocusModeをLockedに設定する
+		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeLocked] &&
+			[self.class isManualFocusSupported]) {
 			if ([self.captureDevice lockForConfiguration:&error]) {
 				self.captureDevice.focusMode = AVCaptureFocusModeLocked;
 				[self.captureDevice unlockForConfiguration];
-				self.focusValue.text = @"手動";
 				
+				self.focusValue.text = @"手動";
+				self.focusMode = MyFocusModeManual;
+				
+				// スライダーを表示する
 				self.slider.hidden = NO;
 				self.slider.minimumValue = 0.0; // 最も近い
-				self.slider.maximumValue = 1.0;
+				self.slider.maximumValue = 1.0; // 最も遠い
 				if ([AVCaptureDevice instancesRespondToSelector:@selector(lensPosition)]) {
-					NSLog(@"lensPosition");
-					self.slider.value = self.captureDevice.lensPosition;
+					self.slider.value = self.captureDevice.lensPosition; // 現在値
 				} else {
 					self.slider.value = 0.0;
 				}
 				self.slider.continuous = YES;
 				[self.slider addTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
 				
+				// フォーカスとズームを同時に操作することは禁止
 				self.zoomButton.enabled = NO;
-				self.focusMode = focusMode;
 			}
 		}
 	} else {
@@ -450,13 +469,16 @@ typedef NS_ENUM(NSInteger, FocusMode) {
 			if ([self.captureDevice lockForConfiguration:&error]) {
 				self.captureDevice.focusMode = AVCaptureFocusModeLocked;
 				[self.captureDevice unlockForConfiguration];
-				self.focusValue.text = @"固定";
 				
+				self.focusValue.text = @"固定";
+				self.focusMode = MyFocusModeLocked;
+				
+				// スライダーを消す
 				self.slider.hidden = YES;
 				[self.slider removeTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
 				
+				// ズームモードを許可
 				self.zoomButton.enabled = YES;
-				self.focusMode = focusMode;
 			}
 		}
 	}
@@ -466,10 +488,12 @@ typedef NS_ENUM(NSInteger, FocusMode) {
 	NSLog(@"zoomValueChanged %f", slider.value);
 	NSError *error;
 	
-	if ([self.captureDevice lockForConfiguration:&error]) {
-		[self.captureDevice setVideoZoomFactor:slider.value];
-		[self.captureDevice unlockForConfiguration];
-		self.zoomValue.text = [NSString stringWithFormat:@"%0.1f", slider.value];
+	if ([self.class isVideoZoomSupported]) {
+		if ([self.captureDevice lockForConfiguration:&error]) {
+			[self.captureDevice setVideoZoomFactor:slider.value];
+			[self.captureDevice unlockForConfiguration];
+			self.zoomValue.text = [NSString stringWithFormat:@"%0.1f", slider.value];
+		}
 	}
 }
 
@@ -477,14 +501,32 @@ typedef NS_ENUM(NSInteger, FocusMode) {
 	NSLog(@"focusValueChanged %f", slider.value);
 	NSError *error;
 	
-	if ([AVCaptureDevice instancesRespondToSelector:@selector(setFocusModeLockedWithLensPosition:completionHandler:)]) {
+	if ([self.class isManualFocusSupported]) {
 		if (![self.captureDevice isAdjustingFocus]) {
 			if ([self.captureDevice lockForConfiguration:&error]) {
 				[self.captureDevice setFocusModeLockedWithLensPosition:slider.value completionHandler:^(CMTime syncTime) {
+					//unlockForConfigurationは勝手にやってくれている？
 				}];
 			}
 		}
 	}
+}
+
++ (BOOL)isVideoZoomSupported {
+	if (![AVCaptureDevice instancesRespondToSelector:@selector(setVideoZoomFactor:)]) {
+		return NO;
+	}
+	return YES;
+}
+
++ (BOOL)isManualFocusSupported {
+	if (![AVCaptureDevice instancesRespondToSelector:@selector(setFocusModeLockedWithLensPosition:completionHandler:)]) {
+		return NO;
+	}
+	if (![AVCaptureDevice instancesRespondToSelector:@selector(lensPosition)]) {
+		return NO;
+	}
+	return YES;
 }
 
 @end
