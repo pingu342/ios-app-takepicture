@@ -29,11 +29,13 @@
                             </view>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="agl-5G-HY7">
                                 <rect key="frame" x="530" y="275" width="50" height="50"/>
+                                <gestureRecognizers/>
                                 <state key="normal" image="Tap">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <action selector="tapTakePictButton:" destination="sby-Zh-8J3" eventType="touchUpInside" id="X5C-3h-Qfz"/>
+                                    <action selector="handleTapTakePictButton:" destination="sby-Zh-8J3" eventType="touchUpInside" id="OAJ-6t-px3"/>
+                                    <outletCollection property="gestureRecognizers" destination="8i5-Ky-KJk" appends="YES" id="f9d-lS-F3S"/>
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="MlY-Gp-qNR">
@@ -42,7 +44,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <action selector="tapBackButton:" destination="sby-Zh-8J3" eventType="touchUpInside" id="0Qv-hB-JWk"/>
+                                    <action selector="handleTapBackButton:" destination="sby-Zh-8J3" eventType="touchUpInside" id="joh-pk-Zrt"/>
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="gc8-pA-Gmh">
@@ -72,7 +74,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <action selector="zoomButtonTapped:" destination="sby-Zh-8J3" eventType="touchUpInside" id="kSk-RK-nOq"/>
+                                    <action selector="handleTapZoomButton:" destination="sby-Zh-8J3" eventType="touchUpInside" id="h6Y-pA-N9e"/>
                                 </connections>
                             </button>
                             <slider opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.5" minValue="0.0" maxValue="1" translatesAutoresizingMaskIntoConstraints="NO" id="olC-70-NRW">
@@ -94,7 +96,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <action selector="focusButtonTapped:" destination="sby-Zh-8J3" eventType="touchUpInside" id="nSh-gV-oGz"/>
+                                    <action selector="handleTapFocusButton:" destination="sby-Zh-8J3" eventType="touchUpInside" id="NVq-Ji-y2i"/>
                                 </connections>
                             </button>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Auto" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="cug-6M-oiC">
@@ -156,10 +158,16 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="m9R-6E-Axp" userLabel="First Responder" sceneMemberID="firstResponder"/>
                 <tapGestureRecognizer id="0Wh-Yf-pVH">
                     <connections>
-                        <action selector="handleTapGesture:" destination="sby-Zh-8J3" id="sh6-6g-jdl"/>
+                        <action selector="handlePreviewViewTapGesture:" destination="sby-Zh-8J3" id="q2o-QN-XVd"/>
                         <outlet property="delegate" destination="sby-Zh-8J3" id="Tgt-uS-H6W"/>
                     </connections>
                 </tapGestureRecognizer>
+                <pongPressGestureRecognizer allowableMovement="10" minimumPressDuration="0.5" id="8i5-Ky-KJk">
+                    <connections>
+                        <action selector="handleTakePictButtonLongTapGesture:" destination="sby-Zh-8J3" id="eHU-86-gKy"/>
+                        <outlet property="delegate" destination="sby-Zh-8J3" id="TsG-wG-sLd"/>
+                    </connections>
+                </pongPressGestureRecognizer>
             </objects>
             <point key="canvasLocation" x="1036" y="287"/>
         </scene>

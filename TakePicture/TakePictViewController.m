@@ -139,16 +139,38 @@ typedef NS_ENUM(NSInteger, FocusState) {
 }
 */
 
-- (IBAction)tapBackButton:(id)sender {
+- (IBAction)handleTapBackButton:(id)sender {
 	NSLog(@"%s", __FUNCTION__);
 	
 	[self dismissViewControllerAnimated:YES completion:nil];
 }
 
-- (IBAction)tapTakePictButton:(id)sender {
+- (IBAction)handleTapTakePictButton:(id)sender {
 	NSLog(@"%s", __FUNCTION__);
 	
 	[self enqSel:@selector(takePicture)];
+}
+
+- (IBAction)handleTakePictButtonLongTapGesture:(UIGestureRecognizer *)sender {
+	NSLog(@"%s", __FUNCTION__);
+	
+	if (sender.state == UIGestureRecognizerStateBegan) {
+		NSLog(@"Began");
+		[self enqBlock:^(void){
+			[self setFocusMode:AVCaptureFocusModeAutoFocus
+				 interestPoint:CGPointMake(0.5, 0.5)];
+		}];
+	} else if (sender.state == UIGestureRecognizerStateChanged) {
+		NSLog(@"Changed");
+	} else if (sender.state == UIGestureRecognizerStateEnded) {
+		NSLog(@"Ended");
+	} else if (sender.state == UIGestureRecognizerStateCancelled) {
+		NSLog(@"Canceled");
+	} else if (sender.state == UIGestureRecognizerStateFailed) {
+		NSLog(@"Failed");
+	} else if (sender.state == UIGestureRecognizerStateRecognized) {
+		NSLog(@"Recognized");
+	}
 }
 
 - (void)enqBlock:(dispatch_block_t)block {
@@ -597,7 +619,7 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	return UIStatusBarStyleLightContent;
 }
 
-- (IBAction)zoomButtonTapped:(id)sender {
+- (IBAction)handleTapZoomButton:(id)sender {
 	NSLog(@"%s", __FUNCTION__);
 	
 	// キャプチャ中でなければなにもしない
@@ -636,7 +658,7 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	}
 }
 
-- (IBAction)focusButtonTapped:(id)sender {
+- (IBAction)handleTapFocusButton:(id)sender {
 	NSLog(@"%s", __FUNCTION__);
 	
 	// キャプチャ中でなければなにもしない
@@ -663,7 +685,7 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	[self enqSel:@selector(setFocusModeFocusState:) withObject:object];
 }
 
-- (IBAction)handleTapGesture:(UIGestureRecognizer *)sender {
+- (IBAction)handlePreviewViewTapGesture:(UIGestureRecognizer *)sender {
 	NSLog(@"%s", __FUNCTION__);
 	
 	// キャプチャ中でなければなにもしない
@@ -677,13 +699,16 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	}
 	
 	if (self.focusState == FocusStateCurrentModeIsAuto) {
-		NSError *error;
 		
-		// カメラプレビュー用のビューの領域
+		// self.scopeImageViewを表示する位置を取得
+		// self.scopeImageViewはself.viewの子ビューであることに注意
+		CGPoint scopeImageViewPoint = [sender locationInView:self.view];
+		
+		// カメラプレビューのビューの領域
 		CGRect previewRect = self.previewView.bounds;	// 画面はランドスケープ固定
 		//NSLog(@"preview rect=%@", NSStringFromCGRect(previewRect));
 		
-		// 実際にカメラの映像が描画されている領域
+		// カメラプレビューのビュー内部でカメラ映像が描画されている領域
 		CGRect drowRect;
 		drowRect.size.width = previewRect.size.height * 4.0 / 3.0;
 		drowRect.size.height = previewRect.size.width * 3.0 / 4.0;
@@ -696,11 +721,13 @@ typedef NS_ENUM(NSInteger, FocusState) {
 		drowRect.origin.y = (previewRect.size.height - drowRect.size.height) / 2.0;
 		//NSLog(@"drow rect=%@", NSStringFromCGRect(drowRect));
 		
+		// カメラプレビューのビュー内部のタップされた位置
 		CGPoint tap = [sender locationInView:self.previewView];
 		tap.x -= drowRect.origin.x;
 		tap.y -= drowRect.origin.y;
 		//NSLog(@"tap point=%@", NSStringFromCGPoint(tap));
 		
+		// カメラプレビューのビュー内部がタップされたら処理を実行
 		if (0.0 <= tap.x && tap.x <= drowRect.size.width) {
 			if (0.0 <= tap.y && tap.y <= drowRect.size.height) {
 				
@@ -713,43 +740,46 @@ typedef NS_ENUM(NSInteger, FocusState) {
 				interest = CGPointMake((interest.x - 0.5) / self.zoomValue + 0.5,
 									   (interest.y - 0.5) / self.zoomValue + 0.5);
 				//NSLog(@"interest point=%@", NSStringFromCGPoint(interest));
-				if ([self.captureDevice isFocusPointOfInterestSupported] &&
-					[self.captureDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
-					if (![self.captureDevice isAdjustingFocus] &&
-						![self.captureDevice isAdjustingExposure]) {
-						if ([self.captureDevice lockForConfiguration:&error]) {
-							NSLog(@"setFocusPointOfInterest newInterest=%@", NSStringFromCGPoint(interest));
-							
-							// 昔のアニメーションを中止
-							[self.scopeImageView.layer removeAllAnimations];
-							
-							// self.scopeImageViewを表示する位置を取得
-							// self.scopeImageViewはself.viewの子ビューであることに注意
-							CGPoint p = [sender locationInView:self.view];
-							
-							// scopeImageViewを表示し、1秒かけて徐々に消す
-							self.scopeImageView.hidden = NO;
-							self.scopeImageView.center = p;
-							self.scopeImageView.alpha = 1.0;
-							[UIView animateWithDuration:1.0f
-												  delay:0.0f
-												options:UIViewAnimationOptionCurveEaseIn
-											 animations:^{
-												 self.scopeImageView.alpha = 0.5;
-											 } completion:^(BOOL finished) {
-											 }
-							 ];
-							
-							// タップされた位置にフォーカスと露出（シャッタースピード）をロックした状態に入る
-							self.autoFocusLockedTemporarily = YES;
-							self.captureDevice.focusPointOfInterest = interest;
-							self.captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
-							//self.captureDevice.exposurePointOfInterest = interest;
-							//self.captureDevice.exposureMode = AVCaptureExposureModeAutoExpose;
-							[self.captureDevice unlockForConfiguration];
+				[self enqBlock:^(void){
+					NSError *error;
+					if ([self.captureDevice isFocusPointOfInterestSupported] &&
+						[self.captureDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
+						if (![self.captureDevice isAdjustingFocus] &&
+							![self.captureDevice isAdjustingExposure]) {
+							if ([self.captureDevice lockForConfiguration:&error]) {
+								NSLog(@"setFocusPointOfInterest newInterest=%@", NSStringFromCGPoint(interest));
+								
+								dispatch_sync(dispatch_get_main_queue(), ^(void){
+								
+									// 昔のアニメーションを中止
+									[self.scopeImageView.layer removeAllAnimations];
+									
+									NSLog(@"scopeImageViewPoint=%@", NSStringFromCGPoint(scopeImageViewPoint));
+									
+									// scopeImageViewを表示し、1秒かけて徐々に消す
+									self.scopeImageView.hidden = NO;
+									self.scopeImageView.center = scopeImageViewPoint;
+									self.scopeImageView.alpha = 1.0;
+									[UIView animateWithDuration:1.0f
+														  delay:0.0f
+														options:UIViewAnimationOptionCurveEaseIn
+													 animations:^{
+														 self.scopeImageView.alpha = 0.5;
+													 } completion:^(BOOL finished) {
+													 }];
+									self.autoFocusLockedTemporarily = YES;
+								});
+								
+								// タップされた位置にフォーカスと露出（シャッタースピード）をロックした状態に入る
+								self.captureDevice.focusPointOfInterest = interest;
+								self.captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
+								//self.captureDevice.exposurePointOfInterest = interest;
+								//self.captureDevice.exposureMode = AVCaptureExposureModeAutoExpose;
+								[self.captureDevice unlockForConfiguration];
+							}
 						}
 					}
-				}
+				}];
 			}
 		}
 	}
