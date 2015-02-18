@@ -15,10 +15,13 @@
 
 #define RAW_IMAGE
 
-typedef NS_ENUM(NSInteger, MyFocusMode) {
-	MyFocusModeAuto,
-	MyFocusModeManual,
-	MyFocusModeLocked
+typedef NS_ENUM(NSInteger, FocusState) {
+	FocusStateCurrentModeIsAuto,
+	FocusStateWhileChangingModeAutoToManual,
+	FocusStateCurrentModeIsManual,
+	FocusStateWhileChangingModeManualToLocked,
+	FocusStateCurrentModeIsLocked,
+	FocusStateWhileChangingModeLockedToAuto
 };
 
 @interface TakePictViewController () {
@@ -37,11 +40,14 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 @property (nonatomic) AVCaptureDeviceInput *captureInput;
 @property (nonatomic) AVCaptureStillImageOutput *captureOutput;
 @property (nonatomic) AVCaptureConnection *captureConnection;
-@property (nonatomic) AVCaptureVideoPreviewLayer *previewLayer;
+@property (nonatomic) AVCaptureVideoPreviewLayer *capturePreviewLayer;
+@property (nonatomic) BOOL capturing;
 
+@property (nonatomic) BOOL previewing;
 @property (nonatomic) BOOL zoomMode;
 @property (nonatomic) CGFloat zoomValue;
-@property (nonatomic) MyFocusMode focusMode;
+@property (nonatomic) CGFloat maxZoomFactor;
+@property (nonatomic) FocusState focusState;
 @property (nonatomic) BOOL autoFocusLockedTemporarily;
 
 @property (nonatomic) dispatch_queue_t queue;
@@ -63,6 +69,8 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 	
 	dispatch_queue_t queue = dispatch_queue_create("myQueue", DISPATCH_QUEUE_SERIAL);
 	self.queue = queue;
+	
+	self.previewing = NO;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -77,28 +85,30 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 	
 	[super viewWillAppear:animated];
 	
-	// ビューを初期化
+	// ビューを初期状態に設定
 	self.slider.hidden = YES;
 	self.zoomValueLabel.text = @"x1.0";
 	self.zoomValue = 1.0;
+	self.zoomButton.enabled = NO;
 	self.zoomMode = NO;
 	self.focusValueLabel.text = @"自動";
-	self.focusMode = MyFocusModeAuto;
+	self.focusState = FocusStateCurrentModeIsAuto;
+	self.focusButton.enabled = NO;
 	self.autoFocusLockedTemporarily = NO;
 	self.scopeImageView.hidden = YES;
 	
 	// カメラを開始
-	[self setupCapture];
-	if ([self resetCameraSettingsToDefault]) {
-		NSLog(@"resetCameraSettingsToDefault");
-	}
+	[self enqSel:@selector(setupCapture)];
+	[self enqSel:@selector(resetCameraSettingsToDefault)];
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
 	NSLog(@"%s", __FUNCTION__);
 	
 	[super viewWillDisappear:animated];
-	[self teardownCapture];
+	
+	// カメラを停止
+	[self enqSel:@selector(teardownCapture)];
 }
 
 - (void)viewDidLayoutSubviews {
@@ -106,35 +116,7 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 	
 	[super viewDidLayoutSubviews];
 	
-	if (self.previewLayer == nil) {
-		NSLog(@"create previewLayer");
-		
-		// プレビューレイヤーを作成
-		self.previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:self.captureSession];
-		self.previewLayer.backgroundColor = [[UIColor blackColor] CGColor];
-		self.previewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
-		//self.previewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
-		
-		// 回転させる
-		int displayRotation = [CameraManager displayRotationWithViewController:self];
-		if (self.previewLayer.connection.supportsVideoOrientation) {
-			self.previewLayer.connection.videoOrientation = [CameraManager appropriateVideoOrientationWithDisplayRotation:displayRotation];
-		}
-		
-		// プレビューレイヤーをビューに追加
-		self.previewLayer.frame = self.previewView.bounds;
-		[self.previewView.layer addSublayer:self.previewLayer];
-		[self.previewView.layer setMasksToBounds:YES];
-		
-		// 枠を付ける
-		//[self.previewView.layer setBorderWidth:1.0f];
-		//[self.previewView.layer setBorderColor:[[UIColor blueColor] CGColor]];
-		
-	} else {
-		NSLog(@"previewLayer has already created");
-		self.previewLayer.frame = self.previewView.bounds;
-	}
-	
+	self.capturePreviewLayer.frame = self.previewView.bounds;
 	[self.view layoutIfNeeded];
 }
 
@@ -161,13 +143,34 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 	NSLog(@"%s", __FUNCTION__);
 	
 	[self dismissViewControllerAnimated:YES completion:nil];
-	[self teardownCapture];
 }
 
 - (IBAction)tapTakePictButton:(id)sender {
 	NSLog(@"%s", __FUNCTION__);
 	
-	[self takePicture];
+	[self enqSel:@selector(takePicture)];
+}
+
+- (void)enqBlock:(dispatch_block_t)block {
+	dispatch_async(self.queue, block);
+}
+
+- (void)enqSel:(SEL)selector {
+	dispatch_async(self.queue, ^(void){
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+		[self performSelector:selector];
+#pragma clang diagnostic pop
+	});
+}
+
+- (void)enqSel:(SEL)selector withObject:(id)object {
+	dispatch_async(self.queue, ^(void){
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
+		[self performSelector:selector withObject:object];
+#pragma clang diagnostic pop
+	});
 }
 
 - (void) teardownCapture {
@@ -180,7 +183,6 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 	[self.captureSession stopRunning];
 	[self.captureSession removeInput:self.captureInput];
 	[self.captureSession removeOutput:self.captureOutput];
-	[self.previewLayer removeFromSuperlayer];
 	
 	// オブザーバーを削除
 	[[NSNotificationCenter defaultCenter] removeObserver:self
@@ -193,7 +195,13 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 	self.captureInput = nil;
 	self.captureOutput = nil;
 	self.captureConnection = nil;
-	self.previewLayer = nil;
+	
+	dispatch_sync(dispatch_get_main_queue(), ^(void){
+		[self.capturePreviewLayer removeFromSuperlayer];
+		self.capturePreviewLayer = nil;
+		self.previewing = NO;
+		self.maxZoomFactor = 1.0;
+	});
 }
 
 - (void)setupCapture {
@@ -343,14 +351,164 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 	self.captureInput = input;
 	self.captureOutput = output;
 	self.captureConnection = connection;
+	
+	dispatch_sync(dispatch_get_main_queue(), ^(void){
+		// キャプチャ中を示すフラグをON
+		self.previewing = YES;
+		
+		// 最大ズーム
+		self.maxZoomFactor = self.captureDevice.activeFormat.videoMaxZoomFactor;
+		
+		// プレビューレイヤーを作成
+		self.capturePreviewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:self.captureSession];
+		self.capturePreviewLayer.backgroundColor = [[UIColor blackColor] CGColor];
+		self.capturePreviewLayer.videoGravity = AVLayerVideoGravityResizeAspect;
+		//self.capturePreviewLayer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+		
+		// 回転させる
+		int displayRotation = [CameraManager displayRotationWithViewController:self];
+		if (self.capturePreviewLayer.connection.supportsVideoOrientation) {
+			self.capturePreviewLayer.connection.videoOrientation = [CameraManager appropriateVideoOrientationWithDisplayRotation:displayRotation];
+		}
+		
+		// プレビューレイヤーをビューに追加
+		self.capturePreviewLayer.frame = self.previewView.bounds;
+		[self.previewView.layer addSublayer:self.capturePreviewLayer];
+		[self.previewView.layer setMasksToBounds:YES];
+		
+		// 枠を付ける
+		//[self.previewView.layer setBorderWidth:1.0f];
+		//[self.previewView.layer setBorderColor:[[UIColor blueColor] CGColor]];
+	});
 }
 
-- (void) takePicture {
+- (void)resetCameraSettingsToDefault {
+	NSLog(@"%s", __FUNCTION__);
+	if ([self setFocusMode:AVCaptureFocusModeContinuousAutoFocus
+			  exposureMode:AVCaptureExposureModeContinuousAutoExposure
+			 interestPoint:CGPointMake(0.5, 0.5)]) {
+		
+		dispatch_sync(dispatch_get_main_queue(), ^(void){
+			
+			// ビューをカメラ開始時のデフォルト状態に変更
+			self.scopeImageView.hidden = NO;
+			self.scopeImageView.center = CGPointMake(self.view.bounds.size.width/2.0, self.view.bounds.size.height/2.0);
+			self.scopeImageView.alpha = 1.0;
+			[UIView animateWithDuration:1.0f
+								  delay:0.0f
+								options:UIViewAnimationOptionCurveEaseIn
+							 animations:^{
+								 self.scopeImageView.alpha = 0.3;
+							 } completion:^(BOOL finished) {
+							 }];
+			
+			self.slider.hidden = YES;
+			self.zoomValueLabel.text = @"x1.0";
+			self.zoomValue = 1.0;
+			self.zoomButton.enabled = YES;
+			self.zoomMode = NO;
+			self.focusValueLabel.text = @"自動";
+			self.focusState	= FocusStateCurrentModeIsAuto;
+			self.focusButton.enabled = YES;
+			self.autoFocusLockedTemporarily = NO;
+			
+		});
+	}
+}
+
+- (void)setFocusModeFocusState:(id)object {
+	NSError *error;
+	FocusState focusState = [(NSNumber *)object integerValue];
+	
+	if (focusState == FocusStateWhileChangingModeLockedToAuto) {
+		// カメラが自動でフォーカスするモードに切り換える
+		// このモードではfocusModeをContinuousAutoFocusに設定する
+		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
+			if ([self.captureDevice lockForConfiguration:&error]) {
+				self.captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
+				[self.captureDevice unlockForConfiguration];
+				
+				dispatch_sync(dispatch_get_main_queue(), ^(void){
+					self.focusState = FocusStateCurrentModeIsAuto;
+					self.autoFocusLockedTemporarily = NO;
+					self.focusValueLabel.text = @"自動";
+					
+					// スライダーを消す
+					self.slider.hidden = YES;
+					[self.slider removeTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
+					
+					// ズームモードを許可
+					self.zoomButton.enabled = YES;
+				});
+			}
+		}
+		
+	} else if (focusState == FocusStateWhileChangingModeAutoToManual) {
+		// スライダー操作によりマニュアルでフォーカスを設定するモードに切り替える
+		// このモードではfocusModeをLockedに設定する
+		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeLocked] &&
+			[self.class isManualFocusSupported]) {
+			if ([self.captureDevice lockForConfiguration:&error]) {
+				self.captureDevice.focusMode = AVCaptureFocusModeLocked;
+				[self.captureDevice unlockForConfiguration];
+				
+				dispatch_sync(dispatch_get_main_queue(), ^(void){
+					self.focusValueLabel.text = @"手動";
+					self.focusState = FocusStateCurrentModeIsManual;
+					
+					// スライダーを表示する
+					self.slider.hidden = NO;
+					self.slider.minimumValue = 0.0; // 最も近い
+					self.slider.maximumValue = 1.0; // 最も遠い
+					if ([AVCaptureDevice instancesRespondToSelector:@selector(lensPosition)]) {
+						self.slider.value = self.captureDevice.lensPosition; // 現在値
+					} else {
+						self.slider.value = 0.0;
+					}
+					self.slider.continuous = YES;
+					[self.slider addTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
+					
+					// フォーカスとズームを同時に操作することは禁止
+					self.zoomButton.enabled = NO;
+				});
+			}
+		}
+		
+	} else if (focusState == FocusStateWhileChangingModeManualToLocked) {
+		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) {
+			if ([self.captureDevice lockForConfiguration:&error]) {
+				self.captureDevice.focusMode = AVCaptureFocusModeLocked;
+				[self.captureDevice unlockForConfiguration];
+				
+				dispatch_sync(dispatch_get_main_queue(), ^(void){
+					self.focusValueLabel.text = @"固定";
+					self.focusState	= FocusStateCurrentModeIsLocked;
+					
+					// スライダーを消す
+					self.slider.hidden = YES;
+					[self.slider removeTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
+					
+					// ズームモードを許可
+					self.zoomButton.enabled = YES;
+				});
+			}
+		}
+	}
+}
+
+- (void)takePicture {
 	NSLog(@"%s", __FUNCTION__);
 	
 	if (self.captureOutput == nil) {
 		return;
 	}
+	
+	if (self.capturing) {
+		NSLog(@"ignore");
+		return;
+	}
+	
+	self.capturing = YES;
 	
 	[self.captureOutput captureStillImageAsynchronouslyFromConnection:self.captureConnection
 												  completionHandler:
@@ -393,7 +551,10 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 		 [self presentViewController:viewController animated:YES completion:nil];
 		 
 		 // カメラを終了
-		 [self teardownCapture];
+		 [self enqBlock:^(void){
+			 self.capturing = NO;
+			 [self teardownCapture];
+		 }];
 	 }];
 
 }
@@ -439,18 +600,21 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 - (IBAction)zoomButtonTapped:(id)sender {
 	NSLog(@"%s", __FUNCTION__);
 	
-	// ズームモード切替（固定(NO) -> ズーム(YES)）
-	BOOL zoomMode = !self.zoomMode;
+	// キャプチャ中でなければなにもしない
+	if (!self.previewing) {
+		return;
+	}
 	
-	if (zoomMode) {
-		NSLog(@"videoMaxZoomFactor=%f", self.captureDevice.activeFormat.videoMaxZoomFactor);
+	// ズームモード切替（固定(NO) -> ズーム(YES)）
+	if (!self.zoomMode) {
+		// ズームモードに入る
 		self.zoomMode = YES;
 		
 		// スライダーを表示
 		CGFloat maxZoom = 8.0;
 		self.slider.minimumValue = 1.0;
 		self.slider.hidden = NO;
-		self.slider.maximumValue = self.captureDevice.activeFormat.videoMaxZoomFactor;
+		self.slider.maximumValue = self.maxZoomFactor;
 		self.slider.maximumValue = self.slider.maximumValue > maxZoom ? maxZoom : self.slider.maximumValue;
 		self.slider.value = self.captureDevice.videoZoomFactor;
 		self.slider.continuous = YES;
@@ -458,7 +622,9 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 		
 		// フォーカスとズームを同時に操作することは禁止
 		self.focusButton.enabled = NO;
+		
 	} else {
+		// ズームモードから出る
 		self.zoomMode = NO;
 		
 		// スライダーを消す
@@ -473,95 +639,44 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 - (IBAction)focusButtonTapped:(id)sender {
 	NSLog(@"%s", __FUNCTION__);
 	
-	MyFocusMode focusMode;
-	NSError *error;
+	// キャプチャ中でなければなにもしない
+	if (!self.previewing) {
+		return;
+	}
+	
+	FocusState newFocusState;
 	
 	// フォーカスモード切替 (自動 -> 手動 -> 固定)
-	if (self.focusMode == MyFocusModeAuto) {
-		focusMode = MyFocusModeManual;
-	} else if (self.focusMode == MyFocusModeManual) {
-		focusMode = MyFocusModeLocked;
+	if (self.focusState == FocusStateCurrentModeIsAuto) {
+		newFocusState = FocusStateWhileChangingModeAutoToManual;
+	} else if (self.focusState == FocusStateCurrentModeIsManual) {
+		newFocusState = FocusStateWhileChangingModeManualToLocked;
+	} else if (self.focusState == FocusStateCurrentModeIsLocked) {
+		newFocusState = FocusStateWhileChangingModeLockedToAuto;
 	} else {
-		focusMode = MyFocusModeAuto;
+		return;
 	}
 	
-	if (focusMode == MyFocusModeAuto) {
-		// カメラが自動でフォーカスするモードに切り換える
-		// このモードではfocusModeをContinuousAutoFocusに設定する
-		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
-			if ([self.captureDevice lockForConfiguration:&error]) {
-				self.captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
-				[self.captureDevice unlockForConfiguration];
-				
-				self.focusMode = MyFocusModeAuto;
-				self.autoFocusLockedTemporarily = NO;
-				self.focusValueLabel.text = @"自動";
-				
-				// スライダーを消す
-				self.slider.hidden = YES;
-				[self.slider removeTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
-				
-				// ズームモードを許可
-				self.zoomButton.enabled = YES;
-			}
-		}
-	} else if (focusMode == MyFocusModeManual) {
-		// スライダー操作によりマニュアルでフォーカスを設定するモードに切り替える
-		// このモードではfocusModeをLockedに設定する
-		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeLocked] &&
-			[self.class isManualFocusSupported]) {
-			if ([self.captureDevice lockForConfiguration:&error]) {
-				self.captureDevice.focusMode = AVCaptureFocusModeLocked;
-				[self.captureDevice unlockForConfiguration];
-				
-				self.focusValueLabel.text = @"手動";
-				self.focusMode = MyFocusModeManual;
-				
-				// スライダーを表示する
-				self.slider.hidden = NO;
-				self.slider.minimumValue = 0.0; // 最も近い
-				self.slider.maximumValue = 1.0; // 最も遠い
-				if ([AVCaptureDevice instancesRespondToSelector:@selector(lensPosition)]) {
-					self.slider.value = self.captureDevice.lensPosition; // 現在値
-				} else {
-					self.slider.value = 0.0;
-				}
-				self.slider.continuous = YES;
-				[self.slider addTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
-				
-				// フォーカスとズームを同時に操作することは禁止
-				self.zoomButton.enabled = NO;
-			}
-		}
-	} else {
-		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) {
-			if ([self.captureDevice lockForConfiguration:&error]) {
-				self.captureDevice.focusMode = AVCaptureFocusModeLocked;
-				[self.captureDevice unlockForConfiguration];
-				
-				self.focusValueLabel.text = @"固定";
-				self.focusMode = MyFocusModeLocked;
-				
-				// スライダーを消す
-				self.slider.hidden = YES;
-				[self.slider removeTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
-				
-				// ズームモードを許可
-				self.zoomButton.enabled = YES;
-			}
-		}
-	}
+	self.focusState = newFocusState;
+	
+	NSNumber *object = [NSNumber numberWithInteger:newFocusState];
+	[self enqSel:@selector(setFocusModeFocusState:) withObject:object];
 }
 
 - (IBAction)handleTapGesture:(UIGestureRecognizer *)sender {
 	NSLog(@"%s", __FUNCTION__);
+	
+	// キャプチャ中でなければなにもしない
+	if (!self.previewing) {
+		return;
+	}
 	
 	// ズームモード間はタップを無視
 	if (self.zoomMode) {
 		return;
 	}
 	
-	if (self.focusMode == MyFocusModeAuto) {
+	if (self.focusState == FocusStateCurrentModeIsAuto) {
 		NSError *error;
 		
 		// カメラプレビュー用のビューの領域
@@ -643,6 +758,12 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 - (void)zoomValueChanged:(UISlider *)slider {
 	NSLog(@"%s", __FUNCTION__);
 	NSLog(@"zoomValue=%f", slider.value);
+	
+	// キャプチャ中でなければなにもしない
+	if (!self.previewing) {
+		return;
+	}
+	
 	NSError *error;
 	
 	if ([self.class isVideoZoomSupported]) {
@@ -658,6 +779,12 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 - (void)focusValueChanged:(UISlider *)slider {
 	NSLog(@"%s", __FUNCTION__);
 	NSLog(@"focusValue=%f", slider.value);
+	
+	// キャプチャ中でなければなにもしない
+	if (!self.previewing) {
+		return;
+	}
+	
 	NSError *error;
 	
 	if ([self.class isManualFocusSupported]) {
@@ -675,33 +802,17 @@ typedef NS_ENUM(NSInteger, MyFocusMode) {
 	NSLog(@"%s", __FUNCTION__);
 	NSLog(@"interest=%@", NSStringFromCGPoint(self.captureDevice.focusPointOfInterest));
 	
-	if (self.focusMode == MyFocusModeAuto) {
+	// キャプチャ中でなければなにもしない
+	if (!self.previewing) {
+		return;
+	}
+	
+	if (self.focusState == FocusStateCurrentModeIsAuto) {
 		if (self.autoFocusLockedTemporarily) {
-			[self resetCameraSettingsToDefault];
+			[self enqSel:@selector(resetCameraSettingsToDefault)];
 			self.autoFocusLockedTemporarily = NO;
 		}
 	}
-}
-
-- (BOOL)resetCameraSettingsToDefault {
-	NSLog(@"%s", __FUNCTION__);
-	if ([self setFocusMode:AVCaptureFocusModeContinuousAutoFocus
-			  exposureMode:AVCaptureExposureModeContinuousAutoExposure
-			 interestPoint:CGPointMake(0.5, 0.5)]) {
-		// scopeImageViewを表示し、1秒かけて徐々に薄くする
-		self.scopeImageView.hidden = NO;
-		self.scopeImageView.center = CGPointMake(self.view.bounds.size.width/2.0, self.view.bounds.size.height/2.0);
-		self.scopeImageView.alpha = 1.0;
-		[UIView animateWithDuration:1.0f
-							  delay:0.0f
-							options:UIViewAnimationOptionCurveEaseIn
-						 animations:^{
-							 self.scopeImageView.alpha = 0.3;
-						 } completion:^(BOOL finished) {
-						 }];
-		return YES;
-	}
-	return NO;
 }
 
 - (BOOL)setFocusMode:(AVCaptureFocusMode)focusMode exposureMode:(AVCaptureExposureMode)exposureMode interestPoint:(CGPoint)interest {
