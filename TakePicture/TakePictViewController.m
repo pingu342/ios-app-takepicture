@@ -51,6 +51,8 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 @property (nonatomic, weak) IBOutlet UIButton *resetButton;
 @property (nonatomic, weak) IBOutlet UILabel *focusStatusLabel;
 @property (nonatomic, weak) IBOutlet UILabel *exposureStatusLabel;
+@property (nonatomic, weak) IBOutlet UIButton *isoButton;
+@property (nonatomic, weak) IBOutlet UILabel *isoValueLabel;
 
 // dispatch_queueスレッドからアクセス
 @property (nonatomic) AVCaptureSession *captureSession;
@@ -1057,18 +1059,16 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 	if ([self.class isManualFocusSupported]) {
 		if (![self.captureDevice isAdjustingExposure]) {
 			if ([self.captureDevice lockForConfiguration:&error]) {
-				/*
-				Float64 exposureMinDuration = CMTimeGetSeconds(self.captureDevice.activeVideoMinFrameDuration);
-				Float64 exposureMaxDuration = CMTimeGetSeconds(self.captureDevice.activeVideoMaxFrameDuration);
-				Float64 distance = exposureMaxDuration - exposureMinDuration;
-				Float64 exposureDuration = distance * slider.value + exposureMinDuration;
-				NSLog(@"min=%0.3f max=%0.3f %0.3fs", exposureMinDuration, exposureMaxDuration, exposureDuration);
-				[self.captureDevice setExposureModeCustomWithDuration:CMTimeMakeWithSeconds(exposureDuration, 1)
+				Float64 min = CMTimeGetSeconds(self.captureDevice.activeVideoMinFrameDuration);
+				Float64 max = CMTimeGetSeconds(self.captureDevice.activeVideoMaxFrameDuration);
+				Float64 distance = max - min;
+				Float64 exposureDuration = distance * slider.value + min;
+				NSLog(@"min=%0.3f max=%0.3f %0.3fs", min, max, exposureDuration);
+				[self.captureDevice setExposureModeCustomWithDuration:CMTimeMakeWithSeconds(exposureDuration, 1000000000)
 																  ISO:AVCaptureISOCurrent
 													completionHandler:^(CMTime syncTime) {
 					//unlockForConfigurationは勝手にやってくれている？
 				}];
-				 */
 			}
 		}
 	}
