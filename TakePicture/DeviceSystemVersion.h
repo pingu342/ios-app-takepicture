@@ -10,8 +10,8 @@
 
 @interface DeviceSystemVersion : NSObject
 
-@property (nonatomic, readonly) int major;
-@property (nonatomic, readonly) int minor;
+@property (nonatomic, readonly) NSInteger major;
+@property (nonatomic, readonly) NSInteger minor;
 
 + (DeviceSystemVersion *)sharedInstance;
 

@@ -27,6 +27,7 @@ typedef NS_ENUM(NSInteger, FocusState) {
 @interface TakePictViewController () {
 }
 
+// UI
 @property (nonatomic, weak) IBOutlet UIView *previewView;
 @property (nonatomic, weak) IBOutlet UISlider *slider;
 @property (nonatomic, weak) IBOutlet UIButton *zoomButton;
@@ -34,7 +35,11 @@ typedef NS_ENUM(NSInteger, FocusState) {
 @property (nonatomic, weak) IBOutlet UIButton *focusButton;
 @property (nonatomic, weak) IBOutlet UILabel *focusValueLabel;
 @property (nonatomic, weak) IBOutlet UIImageView *scopeImageView;
+@property (nonatomic, weak) IBOutlet UIButton *resetButton;
+@property (nonatomic, weak) IBOutlet UILabel *focusStatusLabel;
+@property (nonatomic, weak) IBOutlet UILabel *exposureStatusLabel;
 
+// dispatch_queueスレッドからアクセス
 @property (nonatomic) AVCaptureSession *captureSession;
 @property (nonatomic) AVCaptureDevice *captureDevice;
 @property (nonatomic) AVCaptureDeviceInput *captureInput;
@@ -43,12 +48,15 @@ typedef NS_ENUM(NSInteger, FocusState) {
 @property (nonatomic) AVCaptureVideoPreviewLayer *capturePreviewLayer;
 @property (nonatomic) BOOL capturing;
 
+// mainスレッドからアクセス
 @property (nonatomic) BOOL previewing;
 @property (nonatomic) BOOL zoomMode;
 @property (nonatomic) CGFloat zoomValue;
 @property (nonatomic) CGFloat maxZoomFactor;
 @property (nonatomic) FocusState focusState;
 @property (nonatomic) BOOL autoFocusLockedTemporarily;
+@property (nonatomic) NSLayoutConstraint *scopeImageViewConstraintX;
+@property (nonatomic) NSLayoutConstraint *scopeImageViewConstraintY;
 
 @property (nonatomic) dispatch_queue_t queue;
 
@@ -71,6 +79,9 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	self.queue = queue;
 	
 	self.previewing = NO;
+	
+	// プログラムから動的に値を変更する制約を追加
+	[self resetScopeImageViewPositionToCenter];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -94,8 +105,11 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	self.focusValueLabel.text = @"自動";
 	self.focusState = FocusStateCurrentModeIsAuto;
 	self.focusButton.enabled = NO;
+	self.focusStatusLabel.text = @"Focus: ContinuousAuto";
+	self.exposureStatusLabel.text = @"Exposure: ContinuousAuto";
 	self.autoFocusLockedTemporarily = NO;
 	self.scopeImageView.hidden = YES;
+	self.resetButton.hidden = NO;
 	
 	// カメラを開始
 	[self enqSel:@selector(setupCapture)];
@@ -115,9 +129,8 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	NSLog(@"%s", __FUNCTION__);
 	
 	[super viewDidLayoutSubviews];
-	
-	self.capturePreviewLayer.frame = self.previewView.bounds;
-	[self.view layoutIfNeeded];
+	//self.capturePreviewLayer.frame = self.previewView.bounds;
+	//[self.view layoutIfNeeded];
 }
 
 - (BOOL)shouldAutorotate {
@@ -151,26 +164,34 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	[self enqSel:@selector(takePicture)];
 }
 
-- (IBAction)handleTakePictButtonLongTapGesture:(UIGestureRecognizer *)sender {
+- (IBAction)handleTakePictButtonLongPressGesture:(UIGestureRecognizer *)sender {
 	NSLog(@"%s", __FUNCTION__);
 	
 	if (sender.state == UIGestureRecognizerStateBegan) {
-		NSLog(@"Began");
+		NSLog(@"LongPress Began");
 		[self enqBlock:^(void){
 			[self setFocusMode:AVCaptureFocusModeAutoFocus
-				 interestPoint:CGPointMake(0.5, 0.5)];
+		  focusPointOfInterest:self.captureDevice.focusPointOfInterest
+				  exposureMode:AVCaptureExposureModeAutoExpose
+	   exposurePointOfInterest:self.captureDevice.exposurePointOfInterest];
 		}];
 	} else if (sender.state == UIGestureRecognizerStateChanged) {
-		NSLog(@"Changed");
+		NSLog(@"LongPress Changed");
 	} else if (sender.state == UIGestureRecognizerStateEnded) {
-		NSLog(@"Ended");
+		NSLog(@"LongPress Ended");
 	} else if (sender.state == UIGestureRecognizerStateCancelled) {
-		NSLog(@"Canceled");
+		NSLog(@"LongPress Canceled");
 	} else if (sender.state == UIGestureRecognizerStateFailed) {
-		NSLog(@"Failed");
+		NSLog(@"LongPress Failed");
 	} else if (sender.state == UIGestureRecognizerStateRecognized) {
-		NSLog(@"Recognized");
+		NSLog(@"LongPress Recognized");
 	}
+}
+
+- (IBAction)handleTapResetButton:(id)sender {
+	NSLog(@"%s", __FUNCTION__);
+	
+	[self enqSel:@selector(resetCameraSettingsToDefault)];
 }
 
 - (void)enqBlock:(dispatch_block_t)block {
@@ -211,6 +232,8 @@ typedef NS_ENUM(NSInteger, FocusState) {
 													name:AVCaptureDeviceSubjectAreaDidChangeNotification
 												  object:nil];
 	[self.captureDevice removeObserver:self forKeyPath:@"adjustingFocus"];
+	[self.captureDevice removeObserver:self forKeyPath:@"focusMode"];
+	[self.captureDevice removeObserver:self forKeyPath:@"exposureMode"];
 	
 	self.captureSession = nil;
 	self.captureDevice = nil;
@@ -219,6 +242,7 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	self.captureConnection = nil;
 	
 	dispatch_sync(dispatch_get_main_queue(), ^(void){
+		// プレビューレイヤーを削除
 		[self.capturePreviewLayer removeFromSuperlayer];
 		self.capturePreviewLayer = nil;
 		self.previewing = NO;
@@ -349,22 +373,22 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	}
 	
 	// subjectAreaChangeMonitoringEnabledのデフォルトはNO
-	if (![device isSubjectAreaChangeMonitoringEnabled]) {
-		if ([device lockForConfiguration:&error]) {
-			device.subjectAreaChangeMonitoringEnabled = YES;
-			NSLog(@"enable subjectAreaChangeMonitoring");
-			[device unlockForConfiguration];
-			
-			// 通知センターにAVCaptureDeviceSubjectAreaDidChangeNotificationを登録
-			[[NSNotificationCenter defaultCenter] addObserver:self
-													 selector:@selector(subjectAreaDidChanged)
-														 name:AVCaptureDeviceSubjectAreaDidChangeNotification
-													   object:nil];
-		}
+	if ([device lockForConfiguration:&error]) {
+		NSLog(@"enable subjectAreaChangeMonitoring");
+		device.subjectAreaChangeMonitoringEnabled = YES;
+		[device unlockForConfiguration];
+		
+		// 通知センターにAVCaptureDeviceSubjectAreaDidChangeNotificationを登録
+		[[NSNotificationCenter defaultCenter] addObserver:self
+												 selector:@selector(subjectAreaDidChanged)
+													 name:AVCaptureDeviceSubjectAreaDidChangeNotification
+												   object:nil];
 	}
-	
-	// AVCaptureDevice adjustingFocusプロパティの変化通知をobserveValueForKeyPathメソッドで受け取る
+
+	// AVCaptureDeviceのプロパティの変化通知をobserveValueForKeyPathメソッドで受け取る
 	[device addObserver:self forKeyPath:@"adjustingFocus" options:NSKeyValueObservingOptionNew context:nil];
+	[device addObserver:self forKeyPath:@"focusMode" options:NSKeyValueObservingOptionNew context:nil];
+	[device addObserver:self forKeyPath:@"exposureMode" options:NSKeyValueObservingOptionNew context:nil];
 	
 	[session startRunning];
 	
@@ -407,20 +431,21 @@ typedef NS_ENUM(NSInteger, FocusState) {
 - (void)resetCameraSettingsToDefault {
 	NSLog(@"%s", __FUNCTION__);
 	if ([self setFocusMode:AVCaptureFocusModeContinuousAutoFocus
+	  focusPointOfInterest:CGPointMake(0.5, 0.5)
 			  exposureMode:AVCaptureExposureModeContinuousAutoExposure
-			 interestPoint:CGPointMake(0.5, 0.5)]) {
+   exposurePointOfInterest:CGPointMake(0.5, 0.5)]) {
 		
 		dispatch_sync(dispatch_get_main_queue(), ^(void){
 			
 			// ビューをカメラ開始時のデフォルト状態に変更
 			self.scopeImageView.hidden = NO;
-			self.scopeImageView.center = CGPointMake(self.view.bounds.size.width/2.0, self.view.bounds.size.height/2.0);
+			[self resetScopeImageViewPositionToCenter];
 			self.scopeImageView.alpha = 1.0;
 			[UIView animateWithDuration:1.0f
 								  delay:0.0f
 								options:UIViewAnimationOptionCurveEaseIn
 							 animations:^{
-								 self.scopeImageView.alpha = 0.3;
+								 self.scopeImageView.alpha = 0.0;
 							 } completion:^(BOOL finished) {
 							 }];
 			
@@ -432,6 +457,7 @@ typedef NS_ENUM(NSInteger, FocusState) {
 			self.focusValueLabel.text = @"自動";
 			self.focusState	= FocusStateCurrentModeIsAuto;
 			self.focusButton.enabled = YES;
+			self.resetButton.hidden = NO;
 			self.autoFocusLockedTemporarily = NO;
 			
 		});
@@ -688,6 +714,9 @@ typedef NS_ENUM(NSInteger, FocusState) {
 - (IBAction)handlePreviewViewTapGesture:(UIGestureRecognizer *)sender {
 	NSLog(@"%s", __FUNCTION__);
 	
+	//CGPoint tapOnSuperView = [sender locationInView:self.view];
+	CGPoint tapOnPreviewView = [sender locationInView:self.previewView];
+	
 	// キャプチャ中でなければなにもしない
 	if (!self.previewing) {
 		return;
@@ -699,10 +728,6 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	}
 	
 	if (self.focusState == FocusStateCurrentModeIsAuto) {
-		
-		// self.scopeImageViewを表示する位置を取得
-		// self.scopeImageViewはself.viewの子ビューであることに注意
-		CGPoint scopeImageViewPoint = [sender locationInView:self.view];
 		
 		// カメラプレビューのビューの領域
 		CGRect previewRect = self.previewView.bounds;	// 画面はランドスケープ固定
@@ -722,23 +747,22 @@ typedef NS_ENUM(NSInteger, FocusState) {
 		//NSLog(@"drow rect=%@", NSStringFromCGRect(drowRect));
 		
 		// カメラプレビューのビュー内部のタップされた位置
-		CGPoint tap = [sender locationInView:self.previewView];
-		tap.x -= drowRect.origin.x;
-		tap.y -= drowRect.origin.y;
-		//NSLog(@"tap point=%@", NSStringFromCGPoint(tap));
+		CGPoint interestPoint = tapOnPreviewView;
+		interestPoint.x -= drowRect.origin.x;
+		interestPoint.y -= drowRect.origin.y;
 		
 		// カメラプレビューのビュー内部がタップされたら処理を実行
-		if (0.0 <= tap.x && tap.x <= drowRect.size.width) {
-			if (0.0 <= tap.y && tap.y <= drowRect.size.height) {
+		if (0.0 <= interestPoint.x && interestPoint.x <= drowRect.size.width) {
+			if (0.0 <= interestPoint.y && interestPoint.y <= drowRect.size.height) {
 				
 				// タップされた位置にフォーカスを合わせる
-				CGPoint interest = tap; // tapはランドスケープ座標系(ホームボタン右)、interestもランドスケープ座標系(ホームボタン右)
-				interest.x /= drowRect.size.width;
-				interest.y /= drowRect.size.height;
-				NSLog(@"point=%@ zoom=%0.1f", NSStringFromCGPoint(interest), self.zoomValue);
+				// interestPointはランドスケープ座標系(ホームボタン右)、interestもランドスケープ座標系(ホームボタン右)
+				interestPoint.x /= drowRect.size.width;
+				interestPoint.y /= drowRect.size.height;
+				NSLog(@"interestPoint=%@ zoom=%0.1f", NSStringFromCGPoint(interestPoint), self.zoomValue);
 				// ズームを補正（ビューの中心を原点とする座標系に変換してからズームを補正後に左上原点の座標系に戻す）
-				interest = CGPointMake((interest.x - 0.5) / self.zoomValue + 0.5,
-									   (interest.y - 0.5) / self.zoomValue + 0.5);
+				interestPoint = CGPointMake((interestPoint.x - 0.5) / self.zoomValue + 0.5,
+											(interestPoint.y - 0.5) / self.zoomValue + 0.5);
 				//NSLog(@"interest point=%@", NSStringFromCGPoint(interest));
 				[self enqBlock:^(void){
 					NSError *error;
@@ -747,18 +771,16 @@ typedef NS_ENUM(NSInteger, FocusState) {
 						if (![self.captureDevice isAdjustingFocus] &&
 							![self.captureDevice isAdjustingExposure]) {
 							if ([self.captureDevice lockForConfiguration:&error]) {
-								NSLog(@"setFocusPointOfInterest newInterest=%@", NSStringFromCGPoint(interest));
+								NSLog(@"setFocusPointOfInterest interestPoint=%@", NSStringFromCGPoint(interestPoint));
 								
 								dispatch_sync(dispatch_get_main_queue(), ^(void){
 								
 									// 昔のアニメーションを中止
 									[self.scopeImageView.layer removeAllAnimations];
 									
-									NSLog(@"scopeImageViewPoint=%@", NSStringFromCGPoint(scopeImageViewPoint));
-									
 									// scopeImageViewを表示し、1秒かけて徐々に消す
 									self.scopeImageView.hidden = NO;
-									self.scopeImageView.center = scopeImageViewPoint;
+									[self setScopeImageViewPosition:tapOnPreviewView];
 									self.scopeImageView.alpha = 1.0;
 									[UIView animateWithDuration:1.0f
 														  delay:0.0f
@@ -771,10 +793,10 @@ typedef NS_ENUM(NSInteger, FocusState) {
 								});
 								
 								// タップされた位置にフォーカスと露出（シャッタースピード）をロックした状態に入る
-								self.captureDevice.focusPointOfInterest = interest;
+								self.captureDevice.focusPointOfInterest = interestPoint;
 								self.captureDevice.focusMode = AVCaptureFocusModeAutoFocus;
-								//self.captureDevice.exposurePointOfInterest = interest;
-								//self.captureDevice.exposureMode = AVCaptureExposureModeAutoExpose;
+								self.captureDevice.exposurePointOfInterest = interestPoint;
+								self.captureDevice.exposureMode = AVCaptureExposureModeAutoExpose;
 								[self.captureDevice unlockForConfiguration];
 							}
 						}
@@ -783,6 +805,64 @@ typedef NS_ENUM(NSInteger, FocusState) {
 			}
 		}
 	}
+}
+
+- (void)resetScopeImageViewPositionToCenter {
+	
+	if ([self.view.constraints containsObject:self.scopeImageViewConstraintX]) {
+		[self.view removeConstraint:self.scopeImageViewConstraintX];
+		self.scopeImageViewConstraintX = nil;
+	}
+	
+	if ([self.view.constraints containsObject:self.scopeImageViewConstraintY]) {
+		[self.view removeConstraint:self.scopeImageViewConstraintY];
+		self.scopeImageViewConstraintY = nil;
+	}
+	
+	self.scopeImageViewConstraintX = [NSLayoutConstraint constraintWithItem:self.scopeImageView
+																  attribute:NSLayoutAttributeCenterX
+																  relatedBy:NSLayoutRelationEqual
+																	 toItem:self.previewView
+																  attribute:NSLayoutAttributeCenterX
+																 multiplier:1.0 constant:0.0];
+	self.scopeImageViewConstraintY = [NSLayoutConstraint constraintWithItem:self.scopeImageView
+																  attribute:NSLayoutAttributeCenterY
+																  relatedBy:NSLayoutRelationEqual
+																	 toItem:self.previewView
+																  attribute:NSLayoutAttributeCenterY
+																 multiplier:1.0 constant:0.0];
+	[self.view addConstraint:self.scopeImageViewConstraintX];
+	[self.view addConstraint:self.scopeImageViewConstraintY];
+}
+
+- (void)setScopeImageViewPosition:(CGPoint)position {
+	
+	if ([self.view.constraints containsObject:self.scopeImageViewConstraintX]) {
+		NSLog(@"remove old constraintX");
+		[self.view removeConstraint:self.scopeImageViewConstraintX];
+		self.scopeImageViewConstraintX = nil;
+	}
+	
+	if ([self.view.constraints containsObject:self.scopeImageViewConstraintY]) {
+		NSLog(@"remove old constraintY");
+		[self.view removeConstraint:self.scopeImageViewConstraintY];
+		self.scopeImageViewConstraintY = nil;
+	}
+	NSLog(@"position=%@", NSStringFromCGPoint(position));
+	self.scopeImageViewConstraintX = [NSLayoutConstraint constraintWithItem:self.scopeImageView
+																  attribute:NSLayoutAttributeLeading
+																  relatedBy:NSLayoutRelationEqual
+																	 toItem:self.previewView
+																  attribute:NSLayoutAttributeLeading
+																 multiplier:1.0 constant:position.x - 25.0]; // ImageView高さ50の半分を差し引く
+	self.scopeImageViewConstraintY = [NSLayoutConstraint constraintWithItem:self.scopeImageView
+																  attribute:NSLayoutAttributeTop
+																  relatedBy:NSLayoutRelationEqual
+																	 toItem:self.previewView
+																  attribute:NSLayoutAttributeTop
+																 multiplier:1.0 constant:position.y - 25.0]; // ImageView幅50の半分を差し引く
+	[self.view addConstraint:self.scopeImageViewConstraintX];
+	[self.view addConstraint:self.scopeImageViewConstraintY];
 }
 
 - (void)zoomValueChanged:(UISlider *)slider {
@@ -839,21 +919,21 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	
 	if (self.focusState == FocusStateCurrentModeIsAuto) {
 		if (self.autoFocusLockedTemporarily) {
-			[self enqSel:@selector(resetCameraSettingsToDefault)];
-			self.autoFocusLockedTemporarily = NO;
+			//[self enqSel:@selector(resetCameraSettingsToDefault)];
+			//self.autoFocusLockedTemporarily = NO;
 		}
 	}
 }
 
-- (BOOL)setFocusMode:(AVCaptureFocusMode)focusMode exposureMode:(AVCaptureExposureMode)exposureMode interestPoint:(CGPoint)interest {
+- (BOOL)setFocusMode:(AVCaptureFocusMode)focusMode focusPointOfInterest:(CGPoint)focusPointOfInterest exposureMode:(AVCaptureExposureMode)exposureMode exposurePointOfInterest:(CGPoint)exposurePointOfInterest {
 	NSLog(@"%s", __FUNCTION__);
 	NSError *error;
 	
 	if ([self.captureDevice lockForConfiguration:&error]) {
-		self.captureDevice.focusPointOfInterest = interest;
+		self.captureDevice.focusPointOfInterest = focusPointOfInterest;
 		self.captureDevice.focusMode = focusMode;
-		//self.captureDevice.exposurePointOfInterest = CGPointMake(0.5, 0.5);
-		//self.captureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
+		self.captureDevice.exposurePointOfInterest = exposurePointOfInterest;
+		self.captureDevice.exposureMode = exposureMode;
 		[self.captureDevice unlockForConfiguration];
 		return YES;
 	}
@@ -879,7 +959,27 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	if ([keyPath isEqualToString:@"adjustingFocus"]) {
 		BOOL adjustingFocus = [ [change objectForKey:NSKeyValueChangeNewKey] isEqualToNumber:[NSNumber numberWithInt:1] ];
 		NSLog(@"Is adjusting focus? %@", adjustingFocus ? @"YES" : @"NO" );
-		NSLog(@"Change dictionary: %@", change);
+		//NSLog(@"Change dictionary: %@", change);
+	} else if ([keyPath isEqualToString:@"focusMode"]) {
+		AVCaptureFocusMode focusMode = [[change objectForKey:NSKeyValueChangeNewKey] integerValue];
+		if (focusMode == AVCaptureFocusModeLocked) {
+			self.focusStatusLabel.text = @"Focus: Locked";
+		} else if (focusMode == AVCaptureFocusModeAutoFocus) {
+			self.focusStatusLabel.text = @"Focus: Auto";
+		} else if (focusMode == AVCaptureFocusModeContinuousAutoFocus) {
+			self.focusStatusLabel.text = @"Focus: ContinuousAuto";
+		}
+	} else if ([keyPath isEqualToString:@"exposureMode"]) {
+		AVCaptureExposureMode exposureMode = [[change objectForKey:NSKeyValueChangeNewKey] integerValue];
+		if (exposureMode == AVCaptureExposureModeLocked) {
+			self.exposureStatusLabel.text = @"Exposure: Locked";
+		} else if (exposureMode == AVCaptureExposureModeAutoExpose) {
+			self.exposureStatusLabel.text = @"Exposure: Auto";
+		} else if (exposureMode == AVCaptureExposureModeContinuousAutoExposure) {
+			self.exposureStatusLabel.text = @"Exposure: ContinuousAuto";
+		} else if (exposureMode == AVCaptureExposureModeCustom) {
+			self.exposureStatusLabel.text = @"Exposure: Custom";
+		}
 	}
 }
 

@@ -78,8 +78,30 @@
                                 </connections>
                             </button>
                             <slider opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.5" minValue="0.0" maxValue="1" translatesAutoresizingMaskIntoConstraints="NO" id="olC-70-NRW">
-                                <rect key="frame" x="184" y="285" width="231" height="31"/>
+                                <rect key="frame" x="168" y="395" width="231" height="31"/>
                             </slider>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="HQz-BC-7np">
+                                <rect key="frame" x="263" y="554" width="40" height="30"/>
+                                <state key="normal" title="Reset">
+                                    <color key="titleColor" red="1" green="0.80000001192092896" blue="0.40000000596046448" alpha="1" colorSpace="calibratedRGB"/>
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <connections>
+                                    <action selector="handleTapResetButton:" destination="sby-Zh-8J3" eventType="touchUpInside" id="V9u-46-exQ"/>
+                                </connections>
+                            </button>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Focus" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="naJ-vL-qWd">
+                                <rect key="frame" x="64" y="28" width="34" height="15"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="calibratedRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Exposure" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Zb4-xR-kiF">
+                                <rect key="frame" x="64" y="51" width="53" height="15"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="calibratedRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="x8.0" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="TEY-FB-6F4">
                                 <rect key="frame" x="4" y="123" width="42" height="18"/>
                                 <constraints>
@@ -105,8 +127,8 @@
                                 <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="calibratedRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" image="Scope" translatesAutoresizingMaskIntoConstraints="NO" id="amz-NY-45d">
-                                <rect key="frame" x="2" y="530" width="50" height="50"/>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Scope" translatesAutoresizingMaskIntoConstraints="NO" id="amz-NY-45d">
+                                <rect key="frame" x="0.0" y="0.0" width="50" height="50"/>
                             </imageView>
                         </subviews>
                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
@@ -115,40 +137,61 @@
                             <constraint firstItem="TEY-FB-6F4" firstAttribute="leading" secondItem="qcA-h8-iwZ" secondAttribute="leading" constant="4" id="2NB-PJ-rTO"/>
                             <constraint firstItem="if8-JT-IMp" firstAttribute="leading" secondItem="s4j-e8-lo5" secondAttribute="trailing" constant="14" id="5Zc-W1-wm1"/>
                             <constraint firstItem="TEY-FB-6F4" firstAttribute="top" secondItem="Amd-ak-s5F" secondAttribute="bottom" constant="-3" id="5tX-QR-MbU"/>
+                            <constraint firstItem="if8-JT-IMp" firstAttribute="top" secondItem="Zb4-xR-kiF" secondAttribute="top" constant="-273" id="8To-cj-881"/>
                             <constraint firstItem="s4j-e8-lo5" firstAttribute="top" secondItem="gc8-pA-Gmh" secondAttribute="bottom" constant="7" id="8gU-zO-7tB"/>
                             <constraint firstItem="cug-6M-oiC" firstAttribute="leading" secondItem="qcA-h8-iwZ" secondAttribute="leading" constant="4" id="AGM-iA-VfZ"/>
                             <constraint firstAttribute="centerX" secondItem="olC-70-NRW" secondAttribute="centerX" id="BOe-W8-QZ0"/>
+                            <constraint firstAttribute="centerX" secondItem="HQz-BC-7np" secondAttribute="centerX" id="DlH-dm-zj3"/>
                             <constraint firstItem="Amd-ak-s5F" firstAttribute="leading" secondItem="qcA-h8-iwZ" secondAttribute="leading" constant="3" id="IVr-KT-NYt"/>
                             <constraint firstItem="7dO-Yp-cQj" firstAttribute="leading" secondItem="qcA-h8-iwZ" secondAttribute="leading" constant="2" id="Lsq-TO-8ox"/>
                             <constraint firstAttribute="trailing" secondItem="if8-JT-IMp" secondAttribute="trailing" constant="90" id="MNh-H6-3ox"/>
                             <constraint firstItem="s4j-e8-lo5" firstAttribute="leading" secondItem="qcA-h8-iwZ" secondAttribute="leading" constant="8" id="R3p-wu-gNx"/>
+                            <constraint firstItem="if8-JT-IMp" firstAttribute="leading" secondItem="Zb4-xR-kiF" secondAttribute="leading" constant="-217" id="Tgg-h9-t4t"/>
                             <constraint firstAttribute="trailing" secondItem="agl-5G-HY7" secondAttribute="trailing" constant="20" id="UEx-xh-A6o"/>
                             <constraint firstAttribute="trailing" secondItem="MlY-Gp-qNR" secondAttribute="trailing" constant="20" id="W6h-fh-hL9"/>
+                            <constraint firstItem="if8-JT-IMp" firstAttribute="top" secondItem="naJ-vL-qWd" secondAttribute="top" constant="-8" id="XgA-E2-Dp9"/>
                             <constraint firstAttribute="centerY" secondItem="MlY-Gp-qNR" secondAttribute="centerY" constant="100" id="ZsR-NN-1PL"/>
                             <constraint firstItem="Amd-ak-s5F" firstAttribute="top" secondItem="s4j-e8-lo5" secondAttribute="bottom" constant="8" id="bHH-ms-fnt"/>
+                            <constraint firstItem="amz-NY-45d" firstAttribute="leading" secondItem="qcA-h8-iwZ" secondAttribute="leading" placeholder="YES" id="chY-pT-jZS"/>
                             <constraint firstItem="gc8-pA-Gmh" firstAttribute="leading" secondItem="qcA-h8-iwZ" secondAttribute="leading" constant="10" id="dGJ-yn-yTU"/>
-                            <constraint firstItem="olC-70-NRW" firstAttribute="centerY" secondItem="if8-JT-IMp" secondAttribute="centerY" constant="-10" id="g3e-bK-Zwf"/>
+                            <constraint firstItem="olC-70-NRW" firstAttribute="centerY" secondItem="if8-JT-IMp" secondAttribute="centerY" constant="100" id="g3e-bK-Zwf"/>
+                            <constraint firstItem="if8-JT-IMp" firstAttribute="leading" secondItem="naJ-vL-qWd" secondAttribute="leading" constant="-8" id="hKV-JQ-gMa"/>
                             <constraint firstItem="gc8-pA-Gmh" firstAttribute="top" secondItem="qcA-h8-iwZ" secondAttribute="topMargin" constant="30" id="hd3-rC-uCe"/>
                             <constraint firstAttribute="centerY" secondItem="olC-70-NRW" secondAttribute="centerY" id="iJ4-Fj-uYX"/>
                             <constraint firstItem="7dO-Yp-cQj" firstAttribute="top" secondItem="TEY-FB-6F4" secondAttribute="bottom" constant="14" id="kEe-kh-a3Q"/>
                             <constraint firstItem="olC-70-NRW" firstAttribute="width" secondItem="if8-JT-IMp" secondAttribute="width" multiplier="0.5" id="mY7-1v-HWp"/>
+                            <constraint firstItem="if8-JT-IMp" firstAttribute="centerX" secondItem="Zb4-xR-kiF" secondAttribute="centerX" constant="-16.5" id="n7X-i4-jLf"/>
+                            <constraint firstItem="Zb4-xR-kiF" firstAttribute="top" secondItem="naJ-vL-qWd" secondAttribute="bottom" constant="8" id="ndE-7v-MpC"/>
                             <constraint firstItem="cug-6M-oiC" firstAttribute="top" secondItem="TEY-FB-6F4" secondAttribute="bottom" constant="41" id="pkj-0I-KPw"/>
+                            <constraint firstItem="if8-JT-IMp" firstAttribute="centerX" secondItem="HQz-BC-7np" secondAttribute="centerX" id="pp0-h5-lfy"/>
+                            <constraint firstItem="if8-JT-IMp" firstAttribute="centerX" secondItem="Zb4-xR-kiF" secondAttribute="centerX" constant="-16.5" id="rIv-aj-5vN"/>
                             <constraint firstAttribute="height" secondItem="if8-JT-IMp" secondAttribute="height" constant="20" id="rvP-n1-NyP"/>
+                            <constraint firstItem="amz-NY-45d" firstAttribute="top" secondItem="qcA-h8-iwZ" secondAttribute="top" placeholder="YES" id="sMG-v9-vsF"/>
+                            <constraint firstItem="naJ-vL-qWd" firstAttribute="leading" secondItem="Zb4-xR-kiF" secondAttribute="leading" id="ufT-ny-jFK"/>
+                            <constraint firstItem="jgJ-61-f7k" firstAttribute="top" secondItem="HQz-BC-7np" secondAttribute="bottom" constant="16" id="wOZ-89-nWN"/>
                             <constraint firstItem="if8-JT-IMp" firstAttribute="top" secondItem="qcA-h8-iwZ" secondAttribute="top" constant="20" id="xDo-th-qzD"/>
-                            <constraint firstItem="olC-70-NRW" firstAttribute="centerX" secondItem="if8-JT-IMp" secondAttribute="centerX" constant="16.5" id="yPy-xn-dYc"/>
+                            <constraint firstItem="olC-70-NRW" firstAttribute="centerX" secondItem="if8-JT-IMp" secondAttribute="centerX" id="yPy-xn-dYc"/>
                         </constraints>
                         <variation key="default">
                             <mask key="constraints">
+                                <exclude reference="8To-cj-881"/>
+                                <exclude reference="Tgg-h9-t4t"/>
+                                <exclude reference="n7X-i4-jLf"/>
+                                <exclude reference="rIv-aj-5vN"/>
                                 <exclude reference="BOe-W8-QZ0"/>
                                 <exclude reference="iJ4-Fj-uYX"/>
+                                <exclude reference="DlH-dm-zj3"/>
                             </mask>
                         </variation>
                     </view>
                     <simulatedOrientationMetrics key="simulatedOrientationMetrics" orientation="landscapeRight"/>
                     <connections>
+                        <outlet property="exposureStatusLabel" destination="Zb4-xR-kiF" id="HWL-Vx-hGG"/>
                         <outlet property="focusButton" destination="7dO-Yp-cQj" id="kS5-tl-uiz"/>
+                        <outlet property="focusStatusLabel" destination="naJ-vL-qWd" id="gAb-DX-FKb"/>
                         <outlet property="focusValueLabel" destination="cug-6M-oiC" id="RoX-Mu-0dw"/>
                         <outlet property="previewView" destination="if8-JT-IMp" id="Wqd-Oe-R3H"/>
+                        <outlet property="resetButton" destination="HQz-BC-7np" id="hJo-Sr-oup"/>
                         <outlet property="scopeImageView" destination="amz-NY-45d" id="1Mc-zv-6I4"/>
                         <outlet property="slider" destination="olC-70-NRW" id="6Z4-4v-yN8"/>
                         <outlet property="zoomButton" destination="Amd-ak-s5F" id="7Jv-tb-1Np"/>
@@ -164,7 +207,7 @@
                 </tapGestureRecognizer>
                 <pongPressGestureRecognizer allowableMovement="10" minimumPressDuration="0.5" id="8i5-Ky-KJk">
                     <connections>
-                        <action selector="handleTakePictButtonLongTapGesture:" destination="sby-Zh-8J3" id="eHU-86-gKy"/>
+                        <action selector="handleTakePictButtonLongPressGesture:" destination="sby-Zh-8J3" id="d2S-R2-nR1"/>
                         <outlet property="delegate" destination="sby-Zh-8J3" id="TsG-wG-sLd"/>
                     </connections>
                 </pongPressGestureRecognizer>
