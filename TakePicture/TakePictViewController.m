@@ -105,11 +105,11 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	self.focusValueLabel.text = @"自動";
 	self.focusState = FocusStateCurrentModeIsAuto;
 	self.focusButton.enabled = NO;
-	self.focusStatusLabel.text = @"Focus: ContinuousAuto";
-	self.exposureStatusLabel.text = @"Exposure: ContinuousAuto";
+	self.focusStatusLabel.text = @"Focus:";
+	self.exposureStatusLabel.text = @"Exposure:";
 	self.autoFocusLockedTemporarily = NO;
 	self.scopeImageView.hidden = YES;
-	self.resetButton.hidden = NO;
+	self.resetButton.hidden = YES;
 	
 	// カメラを開始
 	[self enqSel:@selector(setupCapture)];
@@ -457,7 +457,7 @@ typedef NS_ENUM(NSInteger, FocusState) {
 			self.focusValueLabel.text = @"自動";
 			self.focusState	= FocusStateCurrentModeIsAuto;
 			self.focusButton.enabled = YES;
-			self.resetButton.hidden = NO;
+			self.resetButton.hidden = YES;
 			self.autoFocusLockedTemporarily = NO;
 			
 		});
@@ -474,9 +474,22 @@ typedef NS_ENUM(NSInteger, FocusState) {
 		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
 			if ([self.captureDevice lockForConfiguration:&error]) {
 				self.captureDevice.focusMode = AVCaptureFocusModeContinuousAutoFocus;
+				self.captureDevice.focusPointOfInterest = CGPointMake(0.5, 0.5);
 				[self.captureDevice unlockForConfiguration];
 				
 				dispatch_sync(dispatch_get_main_queue(), ^(void){
+					
+					self.scopeImageView.hidden = NO;
+					[self resetScopeImageViewPositionToCenter];
+					self.scopeImageView.alpha = 1.0;
+					[UIView animateWithDuration:1.0f
+										  delay:0.0f
+										options:UIViewAnimationOptionCurveEaseIn
+									 animations:^{
+										 self.scopeImageView.alpha = 0.0;
+									 } completion:^(BOOL finished) {
+									 }];
+					
 					self.focusState = FocusStateCurrentModeIsAuto;
 					self.autoFocusLockedTemporarily = NO;
 					self.focusValueLabel.text = @"自動";
@@ -487,6 +500,8 @@ typedef NS_ENUM(NSInteger, FocusState) {
 					
 					// ズームモードを許可
 					self.zoomButton.enabled = YES;
+					self.resetButton.hidden = YES;
+					self.scopeImageView.hidden = NO;
 				});
 			}
 		}
@@ -518,6 +533,8 @@ typedef NS_ENUM(NSInteger, FocusState) {
 					
 					// フォーカスとズームを同時に操作することは禁止
 					self.zoomButton.enabled = NO;
+					self.resetButton.hidden = YES;
+					self.scopeImageView.hidden = YES;
 				});
 			}
 		}
@@ -538,6 +555,8 @@ typedef NS_ENUM(NSInteger, FocusState) {
 					
 					// ズームモードを許可
 					self.zoomButton.enabled = YES;
+					self.resetButton.hidden = YES;
+					self.scopeImageView.hidden = YES;
 				});
 			}
 		}
@@ -670,6 +689,8 @@ typedef NS_ENUM(NSInteger, FocusState) {
 		
 		// フォーカスとズームを同時に操作することは禁止
 		self.focusButton.enabled = NO;
+		self.resetButton.hidden = YES;
+		self.scopeImageView.hidden = YES;
 		
 	} else {
 		// ズームモードから出る
@@ -681,6 +702,8 @@ typedef NS_ENUM(NSInteger, FocusState) {
 		
 		// フォーカスのモード変更を許可
 		self.focusButton.enabled = YES;
+		self.resetButton.hidden = !self.autoFocusLockedTemporarily;
+		self.scopeImageView.hidden = !self.autoFocusLockedTemporarily;
 	}
 }
 
@@ -790,6 +813,7 @@ typedef NS_ENUM(NSInteger, FocusState) {
 													 } completion:^(BOOL finished) {
 													 }];
 									self.autoFocusLockedTemporarily = YES;
+									self.resetButton.hidden = NO;
 								});
 								
 								// タップされた位置にフォーカスと露出（シャッタースピード）をロックした状態に入る
