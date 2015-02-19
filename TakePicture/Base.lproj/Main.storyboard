@@ -140,7 +140,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <action selector="handleTapExposeButton:" destination="sby-Zh-8J3" eventType="touchUpInside" id="41m-sd-kYL"/>
+                                    <action selector="handleTapExposureButton:" destination="sby-Zh-8J3" eventType="touchUpInside" id="U12-6C-kCd"/>
                                 </connections>
                             </button>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Auto" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="JFM-wk-9d5">
@@ -251,10 +251,10 @@
                     </view>
                     <simulatedOrientationMetrics key="simulatedOrientationMetrics" orientation="landscapeRight"/>
                     <connections>
-                        <outlet property="exposeButton" destination="FhV-nr-veT" id="zoC-1V-Dmi"/>
-                        <outlet property="exposeValueLabel" destination="JFM-wk-9d5" id="Eta-hP-hXS"/>
+                        <outlet property="exposureButton" destination="FhV-nr-veT" id="dpV-9E-WfS"/>
                         <outlet property="exposureDurationLabel" destination="Z7O-ok-YK4" id="rlO-oR-BFb"/>
                         <outlet property="exposureStatusLabel" destination="Zb4-xR-kiF" id="HWL-Vx-hGG"/>
+                        <outlet property="exposureValueLabel" destination="JFM-wk-9d5" id="IyM-yt-j0c"/>
                         <outlet property="focusButton" destination="7dO-Yp-cQj" id="kS5-tl-uiz"/>
                         <outlet property="focusLensPositionLabel" destination="GZc-jx-h0b" id="Gzs-7K-aHX"/>
                         <outlet property="focusStatusLabel" destination="naJ-vL-qWd" id="gAb-DX-FKb"/>

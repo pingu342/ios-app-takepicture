@@ -24,13 +24,13 @@ typedef NS_ENUM(NSInteger, FocusState) {
 	FocusStateWhileChangingModeLockedToAuto
 };
 
-typedef NS_ENUM(NSInteger, ExposeState) {
-	ExposeStateCurrentModeIsAuto,
-	ExposeStateWhileChangingModeAutoToManual,
-	ExposeStateCurrentModeIsManual,
-	ExposeStateWhileChangingModeManualToLocked,
-	ExposeStateCurrentModeIsLocked,
-	ExposeStateWhileChangingModeLockedToAuto
+typedef NS_ENUM(NSInteger, ExposureState) {
+	ExposureStateCurrentModeIsAuto,
+	ExposureStateWhileChangingModeAutoToManual,
+	ExposureStateCurrentModeIsManual,
+	ExposureStateWhileChangingModeManualToLocked,
+	ExposureStateCurrentModeIsLocked,
+	ExposureStateWhileChangingModeLockedToAuto
 };
 
 @interface TakePictViewController () {
@@ -44,8 +44,8 @@ typedef NS_ENUM(NSInteger, ExposeState) {
 @property (nonatomic, weak) IBOutlet UIButton *focusButton;
 @property (nonatomic, weak) IBOutlet UILabel *focusValueLabel;
 @property (nonatomic, weak) IBOutlet UILabel *focusLensPositionLabel;
-@property (nonatomic, weak) IBOutlet UIButton *exposeButton;
-@property (nonatomic, weak) IBOutlet UILabel *exposeValueLabel;
+@property (nonatomic, weak) IBOutlet UIButton *exposureButton;
+@property (nonatomic, weak) IBOutlet UILabel *exposureValueLabel;
 @property (nonatomic, weak) IBOutlet UILabel *exposureDurationLabel;
 @property (nonatomic, weak) IBOutlet UIImageView *scopeImageView;
 @property (nonatomic, weak) IBOutlet UIButton *resetButton;
@@ -67,7 +67,7 @@ typedef NS_ENUM(NSInteger, ExposeState) {
 @property (nonatomic) CGFloat zoomValue;
 @property (nonatomic) CGFloat maxZoomFactor;
 @property (nonatomic) FocusState focusState;
-@property (nonatomic) ExposeState exposeState;
+@property (nonatomic) ExposureState exposureState;
 @property (nonatomic) BOOL autoFocusLockedTemporarily;
 @property (nonatomic) NSLayoutConstraint *scopeImageViewConstraintX;
 @property (nonatomic) NSLayoutConstraint *scopeImageViewConstraintY;
@@ -121,10 +121,10 @@ typedef NS_ENUM(NSInteger, ExposeState) {
 	self.focusState = FocusStateCurrentModeIsAuto;
 	self.focusButton.enabled = NO;
 	self.focusStatusLabel.text = @"Focus:";
-	self.exposeValueLabel.text = @"自動";
+	self.exposureValueLabel.text = @"自動";
 	self.exposureDurationLabel.text = @" ";
-	self.exposeState = ExposeStateCurrentModeIsAuto;
-	self.exposeButton.enabled = NO;
+	self.exposureState = ExposureStateCurrentModeIsAuto;
+	self.exposureButton.enabled = NO;
 	self.exposureStatusLabel.text = @"Exposure:";
 	self.autoFocusLockedTemporarily = NO;
 	self.scopeImageView.hidden = YES;
@@ -484,10 +484,10 @@ typedef NS_ENUM(NSInteger, ExposeState) {
 			self.focusLensPositionLabel.text = [NSString stringWithFormat:@"%0.3f", lensPosition];
 			self.focusState	= FocusStateCurrentModeIsAuto;
 			self.focusButton.enabled = YES;
-			self.exposeValueLabel.text = @"自動";
+			self.exposureValueLabel.text = @"自動";
 			self.exposureDurationLabel.text = [NSString stringWithFormat:@"%0.3fs", exposureDuration];
-			self.exposeState = ExposeStateCurrentModeIsAuto;
-			self.exposeButton.enabled = YES;
+			self.exposureState = ExposureStateCurrentModeIsAuto;
+			self.exposureButton.enabled = YES;
 			self.resetButton.hidden = YES;
 			self.autoFocusLockedTemporarily = NO;
 			
@@ -594,19 +594,19 @@ typedef NS_ENUM(NSInteger, ExposeState) {
 	}
 }
 
-- (void)setExposeModeExposeState:(id)object {
+- (void)setExposureModeExposureState:(id)object {
 	NSError *error;
-	ExposeState exposeState = [(NSNumber *)object integerValue];
+	ExposureState exposureState = [(NSNumber *)object integerValue];
 	
-	if (exposeState == ExposeStateWhileChangingModeLockedToAuto) {
+	if (exposureState == ExposureStateWhileChangingModeLockedToAuto) {
 		if ([self.captureDevice isExposureModeSupported:AVCaptureExposureModeContinuousAutoExposure]) {
 			if ([self.captureDevice lockForConfiguration:&error]) {
 				self.captureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
 				[self.captureDevice unlockForConfiguration];
 				
 				dispatch_sync(dispatch_get_main_queue(), ^(void){
-					self.exposeValueLabel.text = @"自動";
-					self.exposeState = ExposeStateCurrentModeIsAuto;
+					self.exposureValueLabel.text = @"自動";
+					self.exposureState = ExposureStateCurrentModeIsAuto;
 					
 					// スライダーを消す
 					self.slider.hidden = YES;
@@ -614,15 +614,15 @@ typedef NS_ENUM(NSInteger, ExposeState) {
 				});
 			}
 		}
-	} else if (exposeState == ExposeStateWhileChangingModeAutoToManual) {
+	} else if (exposureState == ExposureStateWhileChangingModeAutoToManual) {
 		if ([self.captureDevice isExposureModeSupported:AVCaptureExposureModeCustom]) {
 			if ([self.captureDevice lockForConfiguration:&error]) {
 				self.captureDevice.exposureMode = AVCaptureExposureModeCustom;
 				[self.captureDevice unlockForConfiguration];
 				
 				dispatch_sync(dispatch_get_main_queue(), ^(void){
-					self.exposeValueLabel.text = @"手動";
-					self.exposeState = ExposeStateCurrentModeIsManual;
+					self.exposureValueLabel.text = @"手動";
+					self.exposureState = ExposureStateCurrentModeIsManual;
 					
 					// スライダーを表示する
 					self.slider.hidden = NO;
@@ -633,15 +633,15 @@ typedef NS_ENUM(NSInteger, ExposeState) {
 				});
 			}
 		}
-	} else if (exposeState == ExposeStateWhileChangingModeManualToLocked) {
+	} else if (exposureState == ExposureStateWhileChangingModeManualToLocked) {
 		if ([self.captureDevice isExposureModeSupported:AVCaptureExposureModeLocked]) {
 			if ([self.captureDevice lockForConfiguration:&error]) {
 				self.captureDevice.exposureMode = AVCaptureExposureModeLocked;
 				[self.captureDevice unlockForConfiguration];
 				
 				dispatch_sync(dispatch_get_main_queue(), ^(void){
-					self.exposeValueLabel.text = @"固定";
-					self.exposeState = ExposeStateCurrentModeIsLocked;
+					self.exposureValueLabel.text = @"固定";
+					self.exposureState = ExposureStateCurrentModeIsLocked;
 					
 					// スライダーを消す
 					self.slider.hidden = YES;
@@ -823,7 +823,7 @@ typedef NS_ENUM(NSInteger, ExposeState) {
 	[self enqSel:@selector(setFocusModeFocusState:) withObject:object];
 }
 
-- (IBAction)handleTapExposeButton:(id)sender {
+- (IBAction)handleTapExposureButton:(id)sender {
 	NSLog(@"%s", __FUNCTION__);
 	
 	// キャプチャ中でなければなにもしない
@@ -831,23 +831,23 @@ typedef NS_ENUM(NSInteger, ExposeState) {
 		return;
 	}
 	
-	ExposeState newExposeState;
+	ExposureState newExposureState;
 	
 	// フォーカスモード切替 (自動 -> 手動 -> 固定)
-	if (self.exposeState == ExposeStateCurrentModeIsAuto) {
-		newExposeState = ExposeStateWhileChangingModeAutoToManual;
-	} else if (self.exposeState == ExposeStateCurrentModeIsManual) {
-		newExposeState = ExposeStateWhileChangingModeManualToLocked;
-	} else if (self.exposeState == ExposeStateCurrentModeIsLocked) {
-		newExposeState = ExposeStateWhileChangingModeLockedToAuto;
+	if (self.exposureState == ExposureStateCurrentModeIsAuto) {
+		newExposureState = ExposureStateWhileChangingModeAutoToManual;
+	} else if (self.exposureState == ExposureStateCurrentModeIsManual) {
+		newExposureState = ExposureStateWhileChangingModeManualToLocked;
+	} else if (self.exposureState == ExposureStateCurrentModeIsLocked) {
+		newExposureState = ExposureStateWhileChangingModeLockedToAuto;
 	} else {
 		return;
 	}
 	
-	self.exposeState = newExposeState;
+	self.exposureState = newExposureState;
 	
-	NSNumber *object = [NSNumber numberWithInteger:newExposeState];
-	[self enqSel:@selector(setExposeModeExposeState:) withObject:object];
+	NSNumber *object = [NSNumber numberWithInteger:newExposureState];
+	[self enqSel:@selector(setExposureModeExposureState:) withObject:object];
 }
 
 - (IBAction)handlePreviewViewTapGesture:(UIGestureRecognizer *)sender {
@@ -1050,7 +1050,7 @@ typedef NS_ENUM(NSInteger, ExposeState) {
 
 - (void)exposureValueChanged:(UISlider *)slider {
 	NSLog(@"%s", __FUNCTION__);
-	NSLog(@"exposeValue=%f", slider.value);
+	NSLog(@"exposureValue=%f", slider.value);
 	
 	NSError *error;
 	
