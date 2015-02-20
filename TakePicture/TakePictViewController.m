@@ -15,22 +15,27 @@
 
 #define RAW_IMAGE
 
+typedef NS_ENUM(NSInteger, SliderUseState) {
+	SliderUseStateNoUse,
+	SliderUseStateUseInZoom,
+	SliderUseStateUseInFocus,
+	SliderUseStateUseInExposureDuration,
+	SliderUseStateUseInExposureISO,
+	SliderUseStateUseInExposureBias
+};
+
 typedef NS_ENUM(NSInteger, FocusState) {
 	FocusStateCurrentModeIsAuto,
 	FocusStateWhileChangingModeAutoToManual,
 	FocusStateCurrentModeIsManual,
-	FocusStateWhileChangingModeManualToLocked,
-	FocusStateCurrentModeIsLocked,
-	FocusStateWhileChangingModeLockedToAuto
+	FocusStateWhileChangingModeManualToAuto
 };
 
 typedef NS_ENUM(NSInteger, ExposureState) {
 	ExposureStateCurrentModeIsAuto,
 	ExposureStateWhileChangingModeAutoToManual,
 	ExposureStateCurrentModeIsManual,
-	ExposureStateWhileChangingModeManualToLocked,
-	ExposureStateCurrentModeIsLocked,
-	ExposureStateWhileChangingModeLockedToAuto
+	ExposureStateWhileChangingModeManualToAuto
 };
 
 @interface TakePictViewController () {
@@ -39,20 +44,29 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 // UI
 @property (nonatomic, weak) IBOutlet UIView *previewView;
 @property (nonatomic, weak) IBOutlet UISlider *slider;
-@property (nonatomic, weak) IBOutlet UIButton *zoomButton;
+@property (nonatomic, weak) IBOutlet UIButton *sliderCancelButton;
+@property (nonatomic, weak) IBOutlet UIButton *flashModeButton;
+@property (nonatomic, weak) IBOutlet UIButton *zoomModeButton;
 @property (nonatomic, weak) IBOutlet UILabel *zoomValueLabel;
-@property (nonatomic, weak) IBOutlet UIButton *focusButton;
+@property (nonatomic, weak) IBOutlet UIButton *focusModeButton;
 @property (nonatomic, weak) IBOutlet UILabel *focusValueLabel;
 @property (nonatomic, weak) IBOutlet UILabel *focusLensPositionLabel;
-@property (nonatomic, weak) IBOutlet UIButton *exposureButton;
+@property (nonatomic, weak) IBOutlet UIButton *exposureModeButton;
 @property (nonatomic, weak) IBOutlet UILabel *exposureValueLabel;
-@property (nonatomic, weak) IBOutlet UILabel *exposureDurationLabel;
+@property (nonatomic, weak) IBOutlet UIButton *exposureDurationButton;
+@property (nonatomic, weak) IBOutlet UILabel *exposureDurationValueLabel;
 @property (nonatomic, weak) IBOutlet UIImageView *scopeImageView;
 @property (nonatomic, weak) IBOutlet UIButton *resetButton;
-@property (nonatomic, weak) IBOutlet UILabel *focusStatusLabel;
-@property (nonatomic, weak) IBOutlet UILabel *exposureStatusLabel;
+//@property (nonatomic, weak) IBOutlet UIButton *wbButton;
+//@property (nonatomic, weak) IBOutlet UILabel *wbValueLabel;
+@property (nonatomic, weak) IBOutlet UIButton *evShiftButton;
+@property (nonatomic, weak) IBOutlet UILabel *evOffsetLabel;
+@property (nonatomic, weak) IBOutlet UILabel *evBiasLabel;
 @property (nonatomic, weak) IBOutlet UIButton *isoButton;
 @property (nonatomic, weak) IBOutlet UILabel *isoValueLabel;
+@property (nonatomic, weak) IBOutlet UILabel *focusStatusLabel;
+@property (nonatomic, weak) IBOutlet UILabel *exposureStatusLabel;
+@property (nonatomic, weak) IBOutlet UILabel *wbStatusLabel;
 
 // dispatch_queueスレッドからアクセス
 @property (nonatomic) AVCaptureSession *captureSession;
@@ -71,6 +85,7 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 @property (nonatomic) FocusState focusState;
 @property (nonatomic) ExposureState exposureState;
 @property (nonatomic) BOOL autoFocusLockedTemporarily;
+@property (nonatomic) BOOL evShiftMode;
 @property (nonatomic) NSLayoutConstraint *scopeImageViewConstraintX;
 @property (nonatomic) NSLayoutConstraint *scopeImageViewConstraintY;
 
@@ -87,7 +102,7 @@ typedef NS_ENUM(NSInteger, ExposureState) {
     // Do any additional setup after loading the view.
 	
 	if ([DeviceSystemVersion sharedInstance].major <= 7) {
-		self.focusButton.hidden = YES;
+		self.focusModeButton.hidden = YES;
 		self.focusValueLabel.hidden = YES;
 	}
 	
@@ -114,23 +129,37 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 	
 	// ビューを初期状態に設定
 	self.slider.hidden = YES;
+	self.sliderCancelButton.hidden = YES;
 	self.zoomValueLabel.text = @"x1.0";
 	self.zoomValue = 1.0;
-	self.zoomButton.enabled = NO;
+	self.zoomModeButton.enabled = NO;
 	self.zoomMode = NO;
 	self.focusValueLabel.text = @"自動";
-	self.focusLensPositionLabel.text = @" ";
+	if ([AVCaptureDevice instancesRespondToSelector:@selector(lensPosition)]) {
+		self.focusLensPositionLabel.text = @" ";
+	} else {
+		self.focusLensPositionLabel.text = @"";
+	}
 	self.focusState = FocusStateCurrentModeIsAuto;
-	self.focusButton.enabled = NO;
-	self.focusStatusLabel.text = @"Focus:";
+	self.focusModeButton.enabled = NO;
+	self.focusStatusLabel.text = @"Focus Mode:";
 	self.exposureValueLabel.text = @"自動";
-	self.exposureDurationLabel.text = @" ";
+	self.exposureDurationValueLabel.text = @" ";
 	self.exposureState = ExposureStateCurrentModeIsAuto;
-	self.exposureButton.enabled = NO;
-	self.exposureStatusLabel.text = @"Exposure:";
-	self.autoFocusLockedTemporarily = NO;
+	self.exposureModeButton.enabled = NO;
+	self.exposureStatusLabel.text = @"Exposure Mode:";
+	//self.wbButton.enabled = NO;
+	//self.wbValueLabel.text = @" ";
+	self.wbStatusLabel.text = @"White Balance Mode:";
+	self.evShiftButton.enabled = NO;
+	self.evOffsetLabel.text = @" ";
+	self.evBiasLabel.text = @" ";
+	self.evShiftMode = NO;
+	self.isoButton.enabled = NO;
+	self.isoValueLabel.text = @" ";
 	self.scopeImageView.hidden = YES;
 	self.resetButton.hidden = YES;
+	self.autoFocusLockedTemporarily = NO;
 	
 	// カメラを開始
 	[self enqSel:@selector(setupCapture)];
@@ -194,7 +223,9 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 			[self setFocusMode:AVCaptureFocusModeAutoFocus
 		  focusPointOfInterest:self.captureDevice.focusPointOfInterest
 				  exposureMode:AVCaptureExposureModeAutoExpose
-	   exposurePointOfInterest:self.captureDevice.exposurePointOfInterest];
+	   exposurePointOfInterest:self.captureDevice.exposurePointOfInterest
+			  whiteBalanceMode:AVCaptureWhiteBalanceModeAutoWhiteBalance
+					additional:nil];
 		}];
 	} else if (sender.state == UIGestureRecognizerStateChanged) {
 		NSLog(@"LongPress Changed");
@@ -254,9 +285,21 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 												  object:nil];
 	[self.captureDevice removeObserver:self forKeyPath:@"adjustingFocus"];
 	[self.captureDevice removeObserver:self forKeyPath:@"focusMode"];
-	[self.captureDevice removeObserver:self forKeyPath:@"lensPosition"];
+	if ([AVCaptureDevice instancesRespondToSelector:@selector(lensPosition)]) {
+		[self.captureDevice removeObserver:self forKeyPath:@"lensPosition"];
+	}
 	[self.captureDevice removeObserver:self forKeyPath:@"exposureMode"];
 	[self.captureDevice removeObserver:self forKeyPath:@"exposureDuration"];
+	[self.captureDevice removeObserver:self forKeyPath:@"whiteBalanceMode"];
+	if ([AVCaptureDevice instancesRespondToSelector:@selector(exposureTargetOffset)]) {
+		[self.captureDevice removeObserver:self forKeyPath:@"exposureTargetOffset"];
+	}
+	if ([AVCaptureDevice instancesRespondToSelector:@selector(exposureTargetBias)]) {
+		[self.captureDevice removeObserver:self forKeyPath:@"exposureTargetBias"];
+	}
+	if ([AVCaptureDevice instancesRespondToSelector:@selector(ISO)]) {
+		[self.captureDevice removeObserver:self forKeyPath:@"ISO"];
+	}
 	
 	self.captureSession = nil;
 	self.captureDevice = nil;
@@ -411,9 +454,21 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 	// AVCaptureDeviceのプロパティの変化通知をobserveValueForKeyPathメソッドで受け取る
 	[device addObserver:self forKeyPath:@"adjustingFocus" options:NSKeyValueObservingOptionNew context:nil];
 	[device addObserver:self forKeyPath:@"focusMode" options:NSKeyValueObservingOptionNew context:nil];
-	[device addObserver:self forKeyPath:@"lensPosition" options:NSKeyValueObservingOptionNew context:nil];
+	if ([AVCaptureDevice instancesRespondToSelector:@selector(lensPosition)]) {
+		[device addObserver:self forKeyPath:@"lensPosition" options:NSKeyValueObservingOptionNew context:nil];
+	}
 	[device addObserver:self forKeyPath:@"exposureMode" options:NSKeyValueObservingOptionNew context:nil];
 	[device addObserver:self forKeyPath:@"exposureDuration" options:NSKeyValueObservingOptionNew context:nil];
+	[device addObserver:self forKeyPath:@"whiteBalanceMode" options:NSKeyValueObservingOptionNew context:nil];
+	if ([AVCaptureDevice instancesRespondToSelector:@selector(exposureTargetOffset)]) {
+		[device addObserver:self forKeyPath:@"exposureTargetOffset" options:NSKeyValueObservingOptionNew context:nil];
+	}
+	if ([AVCaptureDevice instancesRespondToSelector:@selector(exposureTargetBias)]) {
+		[device addObserver:self forKeyPath:@"exposureTargetBias" options:NSKeyValueObservingOptionNew context:nil];
+	}
+	if ([AVCaptureDevice instancesRespondToSelector:@selector(ISO)]) {
+		[device addObserver:self forKeyPath:@"ISO" options:NSKeyValueObservingOptionNew context:nil];
+	}
 	
 	[session startRunning];
 	
@@ -455,14 +510,35 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 
 - (void)resetCameraSettingsToDefault {
 	NSLog(@"%s", __FUNCTION__);
+	void (^additional)(void) = ^(void){
+		[self.captureDevice setExposureTargetBias:0.0 completionHandler:^(CMTime syncTime){
+		}];
+	};
 	if ([self setFocusMode:AVCaptureFocusModeContinuousAutoFocus
 	  focusPointOfInterest:CGPointMake(0.5, 0.5)
 			  exposureMode:AVCaptureExposureModeContinuousAutoExposure
-   exposurePointOfInterest:CGPointMake(0.5, 0.5)]) {
+   exposurePointOfInterest:CGPointMake(0.5, 0.5)
+		  whiteBalanceMode:AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance
+				additional:additional]) {
 		
 		Float64 exposureDuration = CMTimeGetSeconds(self.captureDevice.exposureDuration);
-		float lensPosition = self.captureDevice.lensPosition;
-		
+		float lensPosition = 0.0;
+		float evOffset = 0.0;
+		float evBias = 0.0;
+		float ISO = 0.0;
+		if ([AVCaptureDevice instancesRespondToSelector:@selector(lensPosition)]) {
+			lensPosition = self.captureDevice.lensPosition;
+		}
+		if ([AVCaptureDevice instancesRespondToSelector:@selector(exposureTargetOffset)]) {
+			evOffset = self.captureDevice.exposureTargetOffset;
+		}
+		if ([AVCaptureDevice instancesRespondToSelector:@selector(exposureTargetBias)]) {
+			evBias = self.captureDevice.exposureTargetBias;
+		}
+		if ([AVCaptureDevice instancesRespondToSelector:@selector(ISO)]) {
+			ISO = self.captureDevice.ISO;
+		}
+
 		dispatch_sync(dispatch_get_main_queue(), ^(void){
 			
 			// ビューをカメラ開始時のデフォルト状態に変更
@@ -478,18 +554,24 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 							 }];
 			
 			self.slider.hidden = YES;
+			self.sliderCancelButton.hidden = YES;
 			self.zoomValueLabel.text = @"x1.0";
 			self.zoomValue = 1.0;
-			self.zoomButton.enabled = YES;
+			self.zoomModeButton.enabled = YES;
 			self.zoomMode = NO;
 			self.focusValueLabel.text = @"自動";
 			self.focusLensPositionLabel.text = [NSString stringWithFormat:@"%0.3f", lensPosition];
 			self.focusState	= FocusStateCurrentModeIsAuto;
-			self.focusButton.enabled = YES;
+			self.focusModeButton.enabled = YES;
 			self.exposureValueLabel.text = @"自動";
-			self.exposureDurationLabel.text = [NSString stringWithFormat:@"%0.3fs", exposureDuration];
+			self.exposureDurationValueLabel.text = [NSString stringWithFormat:@"%0.3fs", exposureDuration];
 			self.exposureState = ExposureStateCurrentModeIsAuto;
-			self.exposureButton.enabled = YES;
+			self.exposureModeButton.enabled = YES;
+			self.evOffsetLabel.text = [NSString stringWithFormat:@"offset:%0.3fev", evOffset];
+			self.evBiasLabel.text = [NSString stringWithFormat:@"bias:%0.3fev", evBias];
+			self.evShiftButton.enabled = YES;
+			self.evShiftMode = NO;
+			self.isoValueLabel.text = [NSString stringWithFormat:@"%0.3fev", ISO];
 			self.resetButton.hidden = YES;
 			self.autoFocusLockedTemporarily = NO;
 			
@@ -501,7 +583,7 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 	NSError *error;
 	FocusState focusState = [(NSNumber *)object integerValue];
 	
-	if (focusState == FocusStateWhileChangingModeLockedToAuto) {
+	if (focusState == FocusStateWhileChangingModeManualToAuto) {
 		// カメラが自動でフォーカスするモードに切り換える
 		// このモードではfocusModeをContinuousAutoFocusに設定する
 		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeContinuousAutoFocus]) {
@@ -529,10 +611,11 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 					
 					// スライダーを消す
 					self.slider.hidden = YES;
+					self.sliderCancelButton.hidden = YES;
 					[self.slider removeTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
 					
 					// ズームモードを許可
-					self.zoomButton.enabled = YES;
+					self.zoomModeButton.enabled = YES;
 					self.resetButton.hidden = YES;
 					self.scopeImageView.hidden = NO;
 				});
@@ -554,6 +637,7 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 					
 					// スライダーを表示する
 					self.slider.hidden = NO;
+					self.sliderCancelButton.hidden = NO;
 					self.slider.minimumValue = 0.0; // 最も近い
 					self.slider.maximumValue = 1.0; // 最も遠い
 					if ([AVCaptureDevice instancesRespondToSelector:@selector(lensPosition)]) {
@@ -565,34 +649,13 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 					[self.slider addTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
 					
 					// フォーカスとズームを同時に操作することは禁止
-					self.zoomButton.enabled = NO;
+					self.zoomModeButton.enabled = NO;
 					self.resetButton.hidden = YES;
 					self.scopeImageView.hidden = YES;
 				});
 			}
 		}
 		
-	} else if (focusState == FocusStateWhileChangingModeManualToLocked) {
-		if ([self.captureDevice isFocusModeSupported:AVCaptureFocusModeLocked]) {
-			if ([self.captureDevice lockForConfiguration:&error]) {
-				self.captureDevice.focusMode = AVCaptureFocusModeLocked;
-				[self.captureDevice unlockForConfiguration];
-				
-				dispatch_sync(dispatch_get_main_queue(), ^(void){
-					self.focusValueLabel.text = @"固定";
-					self.focusState	= FocusStateCurrentModeIsLocked;
-					
-					// スライダーを消す
-					self.slider.hidden = YES;
-					[self.slider removeTarget:self action:@selector(focusValueChanged:) forControlEvents:UIControlEventValueChanged];
-					
-					// ズームモードを許可
-					self.zoomButton.enabled = YES;
-					self.resetButton.hidden = YES;
-					self.scopeImageView.hidden = YES;
-				});
-			}
-		}
 	}
 }
 
@@ -600,7 +663,7 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 	NSError *error;
 	ExposureState exposureState = [(NSNumber *)object integerValue];
 	
-	if (exposureState == ExposureStateWhileChangingModeLockedToAuto) {
+	if (exposureState == ExposureStateWhileChangingModeManualToAuto) {
 		if ([self.captureDevice isExposureModeSupported:AVCaptureExposureModeContinuousAutoExposure]) {
 			if ([self.captureDevice lockForConfiguration:&error]) {
 				self.captureDevice.exposureMode = AVCaptureExposureModeContinuousAutoExposure;
@@ -612,6 +675,7 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 					
 					// スライダーを消す
 					self.slider.hidden = YES;
+					self.sliderCancelButton.hidden = YES;
 					[self.slider removeTarget:self action:@selector(exposureValueChanged:) forControlEvents:UIControlEventValueChanged];
 				});
 			}
@@ -622,32 +686,20 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 				self.captureDevice.exposureMode = AVCaptureExposureModeCustom;
 				[self.captureDevice unlockForConfiguration];
 				
+				CMTime exposureDuration = self.captureDevice.exposureDuration;
+				
 				dispatch_sync(dispatch_get_main_queue(), ^(void){
 					self.exposureValueLabel.text = @"手動";
 					self.exposureState = ExposureStateCurrentModeIsManual;
 					
 					// スライダーを表示する
 					self.slider.hidden = NO;
+					self.sliderCancelButton.hidden = NO;
 					self.slider.minimumValue = 0.0;
 					self.slider.maximumValue = 1.0;
+					self.slider.value = [self sliderValueWithExposureDuration:exposureDuration];
 					self.slider.continuous = YES;
 					[self.slider addTarget:self action:@selector(exposureValueChanged:) forControlEvents:UIControlEventValueChanged];
-				});
-			}
-		}
-	} else if (exposureState == ExposureStateWhileChangingModeManualToLocked) {
-		if ([self.captureDevice isExposureModeSupported:AVCaptureExposureModeLocked]) {
-			if ([self.captureDevice lockForConfiguration:&error]) {
-				self.captureDevice.exposureMode = AVCaptureExposureModeLocked;
-				[self.captureDevice unlockForConfiguration];
-				
-				dispatch_sync(dispatch_get_main_queue(), ^(void){
-					self.exposureValueLabel.text = @"固定";
-					self.exposureState = ExposureStateCurrentModeIsLocked;
-					
-					// スライダーを消す
-					self.slider.hidden = YES;
-					[self.slider removeTarget:self action:@selector(exposureValueChanged:) forControlEvents:UIControlEventValueChanged];
 				});
 			}
 		}
@@ -772,6 +824,7 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 		CGFloat maxZoom = 8.0;
 		self.slider.minimumValue = 1.0;
 		self.slider.hidden = NO;
+		self.sliderCancelButton.hidden = NO;
 		self.slider.maximumValue = self.maxZoomFactor;
 		self.slider.maximumValue = self.slider.maximumValue > maxZoom ? maxZoom : self.slider.maximumValue;
 		self.slider.value = self.captureDevice.videoZoomFactor;
@@ -779,7 +832,7 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 		[self.slider addTarget:self action:@selector(zoomValueChanged:) forControlEvents:UIControlEventValueChanged];
 		
 		// フォーカスとズームを同時に操作することは禁止
-		self.focusButton.enabled = NO;
+		self.focusModeButton.enabled = NO;
 		self.resetButton.hidden = YES;
 		self.scopeImageView.hidden = YES;
 		
@@ -789,10 +842,11 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 		
 		// スライダーを消す
 		self.slider.hidden = YES;
+		self.sliderCancelButton.hidden = YES;
 		[self.slider removeTarget:self action:@selector(zoomValueChanged:) forControlEvents:UIControlEventValueChanged];
 		
 		// フォーカスのモード変更を許可
-		self.focusButton.enabled = YES;
+		self.focusModeButton.enabled = YES;
 		self.resetButton.hidden = !self.autoFocusLockedTemporarily;
 		self.scopeImageView.hidden = !self.autoFocusLockedTemporarily;
 	}
@@ -812,9 +866,7 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 	if (self.focusState == FocusStateCurrentModeIsAuto) {
 		newFocusState = FocusStateWhileChangingModeAutoToManual;
 	} else if (self.focusState == FocusStateCurrentModeIsManual) {
-		newFocusState = FocusStateWhileChangingModeManualToLocked;
-	} else if (self.focusState == FocusStateCurrentModeIsLocked) {
-		newFocusState = FocusStateWhileChangingModeLockedToAuto;
+		newFocusState = FocusStateWhileChangingModeManualToAuto;
 	} else {
 		return;
 	}
@@ -839,9 +891,7 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 	if (self.exposureState == ExposureStateCurrentModeIsAuto) {
 		newExposureState = ExposureStateWhileChangingModeAutoToManual;
 	} else if (self.exposureState == ExposureStateCurrentModeIsManual) {
-		newExposureState = ExposureStateWhileChangingModeManualToLocked;
-	} else if (self.exposureState == ExposureStateCurrentModeIsLocked) {
-		newExposureState = ExposureStateWhileChangingModeLockedToAuto;
+		newExposureState = ExposureStateWhileChangingModeManualToAuto;
 	} else {
 		return;
 	}
@@ -850,6 +900,69 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 	
 	NSNumber *object = [NSNumber numberWithInteger:newExposureState];
 	[self enqSel:@selector(setExposureModeExposureState:) withObject:object];
+}
+
+/*
+- (IBAction)handleTapWBButton:(id)sender {
+	NSLog(@"%s", __FUNCTION__);
+	
+	// キャプチャ中でなければなにもしない
+	if (!self.previewing) {
+		return;
+	}
+}
+*/
+
+- (IBAction)handleTapEVShiftButton:(id)sender {
+	NSLog(@"%s", __FUNCTION__);
+	
+	// キャプチャ中でなければなにもしない
+	if (!self.previewing) {
+		return;
+	}
+	
+	if (!self.evShiftMode) {
+		
+		if ([AVCaptureDevice instancesRespondToSelector:@selector(setExposureTargetBias:completionHandler:)]) {
+			
+			// 露出補正モードに入る
+			self.evShiftMode = YES;
+			
+			// スライダーを表示
+			self.slider.hidden = NO;
+			self.sliderCancelButton.hidden = NO;
+			self.slider.minimumValue = self.captureDevice.minExposureTargetBias;
+			self.slider.maximumValue = self.captureDevice.maxExposureTargetBias;
+			self.slider.value = 0.0;
+			self.slider.continuous = YES;
+			[self.slider addTarget:self action:@selector(evShiftValueChanged:) forControlEvents:UIControlEventValueChanged];
+		}
+		
+	} else {
+		// 露出補正モードから出る
+		self.evShiftMode = NO;
+		
+		// スライダーを消す
+		self.slider.hidden = YES;
+		self.sliderCancelButton.hidden = YES;
+		[self.slider removeTarget:self action:@selector(evShiftValueChanged:) forControlEvents:UIControlEventValueChanged];
+	}
+}
+
+- (IBAction)handleTapISOButton:(id)sender {
+	NSLog(@"%s", __FUNCTION__);
+	
+	// キャプチャ中でなければなにもしない
+	if (!self.previewing) {
+		return;
+	}
+}
+
+- (IBAction)hadleTapSliderCancelButton:(id)sender {
+	NSLog(@"%s", __FUNCTION__);
+	
+	self.slider.hidden = YES;
+	self.sliderCancelButton.hidden = YES;
 }
 
 - (IBAction)handlePreviewViewTapGesture:(UIGestureRecognizer *)sender {
@@ -1016,16 +1129,22 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 		return;
 	}
 	
-	NSError *error;
+	float zoomValue = slider.value;
 	
-	if ([self.class isVideoZoomSupported]) {
-		if ([self.captureDevice lockForConfiguration:&error]) {
-			[self.captureDevice setVideoZoomFactor:slider.value];
-			[self.captureDevice unlockForConfiguration];
-			self.zoomValue = slider.value;
-			self.zoomValueLabel.text = [NSString stringWithFormat:@"x%0.1f", self.zoomValue];
+	[self enqBlock:^(void){
+		NSError *error;
+		if ([self.class isVideoZoomSupported]) {
+			if ([self.captureDevice lockForConfiguration:&error]) {
+				[self.captureDevice setVideoZoomFactor:zoomValue];
+				[self.captureDevice unlockForConfiguration];
+				
+				dispatch_async(dispatch_get_main_queue(), ^(void){
+					self.zoomValue = zoomValue;
+					self.zoomValueLabel.text = [NSString stringWithFormat:@"x%0.1f", zoomValue];
+				});
+			}
 		}
-	}
+	}];
 }
 
 - (void)focusValueChanged:(UISlider *)slider {
@@ -1037,41 +1156,71 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 		return;
 	}
 	
-	NSError *error;
+	float focusValue = slider.value;
 	
-	if ([self.class isManualFocusSupported]) {
-		if (![self.captureDevice isAdjustingFocus]) {
-			if ([self.captureDevice lockForConfiguration:&error]) {
-				[self.captureDevice setFocusModeLockedWithLensPosition:slider.value completionHandler:^(CMTime syncTime) {
-					//unlockForConfigurationは勝手にやってくれている？
-				}];
+	[self enqBlock:^(void){
+		NSError *error;
+		if ([self.class isManualFocusSupported]) {
+			if (![self.captureDevice isAdjustingFocus]) {
+				if ([self.captureDevice lockForConfiguration:&error]) {
+					[self.captureDevice setFocusModeLockedWithLensPosition:focusValue
+														 completionHandler:^(CMTime syncTime) {
+						//unlockForConfigurationは勝手にやってくれている？
+					}];
+				}
 			}
 		}
-	}
+	}];
 }
 
 - (void)exposureValueChanged:(UISlider *)slider {
 	NSLog(@"%s", __FUNCTION__);
 	NSLog(@"exposureValue=%f", slider.value);
 	
-	NSError *error;
+	// キャプチャ中でなければなにもしない
+	if (!self.previewing) {
+		return;
+	}
 	
-	if ([self.class isManualFocusSupported]) {
-		if (![self.captureDevice isAdjustingExposure]) {
-			if ([self.captureDevice lockForConfiguration:&error]) {
-				Float64 min = CMTimeGetSeconds(self.captureDevice.activeVideoMinFrameDuration);
-				Float64 max = CMTimeGetSeconds(self.captureDevice.activeVideoMaxFrameDuration);
-				Float64 distance = max - min;
-				Float64 exposureDuration = distance * slider.value + min;
-				NSLog(@"min=%0.3f max=%0.3f %0.3fs", min, max, exposureDuration);
-				[self.captureDevice setExposureModeCustomWithDuration:CMTimeMakeWithSeconds(exposureDuration, 1000000000)
-																  ISO:AVCaptureISOCurrent
-													completionHandler:^(CMTime syncTime) {
-					//unlockForConfigurationは勝手にやってくれている？
-				}];
+	float exposureValue = slider.value;
+	
+	[self enqBlock:^(void){
+		NSError *error;
+		if ([self.class isManualFocusSupported]) {
+			if (![self.captureDevice isAdjustingExposure]) {
+				if ([self.captureDevice lockForConfiguration:&error]) {
+					CMTime exposureDuration = [self exposureDurationWithSliderValue:exposureValue];
+					[self.captureDevice setExposureModeCustomWithDuration:exposureDuration
+																	  ISO:AVCaptureISOCurrent
+														completionHandler:^(CMTime syncTime) {
+															//unlockForConfigurationは勝手にやってくれている？
+														}];
+				}
 			}
 		}
+	}];
+}
+
+- (void)evShiftValueChanged:(UISlider *)slider {
+	NSLog(@"%s", __FUNCTION__);
+	NSLog(@"exposureTargetBias=%f", slider.value);
+	
+	// キャプチャ中でなければなにもしない
+	if (!self.previewing) {
+		return;
 	}
+	
+	float exposureTargetBias = slider.value;
+	
+	[self enqBlock:^(void){
+		NSError *error;
+		if ([self.captureDevice lockForConfiguration:&error]) {
+			[self.captureDevice setExposureTargetBias:exposureTargetBias
+									completionHandler:^(CMTime syncTime){
+									}];
+			[self.captureDevice unlockForConfiguration];
+		}
+	}];
 }
 
 - (void)subjectAreaDidChanged{
@@ -1091,28 +1240,29 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 	}
 }
 
-- (BOOL)setFocusMode:(AVCaptureFocusMode)focusMode focusPointOfInterest:(CGPoint)focusPointOfInterest exposureMode:(AVCaptureExposureMode)exposureMode exposurePointOfInterest:(CGPoint)exposurePointOfInterest {
+- (BOOL)setFocusMode:(AVCaptureFocusMode)focusMode focusPointOfInterest:(CGPoint)focusPointOfInterest exposureMode:(AVCaptureExposureMode)exposureMode exposurePointOfInterest:(CGPoint)exposurePointOfInterest whiteBalanceMode:(AVCaptureWhiteBalanceMode)whiteBalanceMode additional:(void (^)(void))additional {
 	NSLog(@"%s", __FUNCTION__);
 	NSError *error;
 	
 	if ([self.captureDevice lockForConfiguration:&error]) {
-		self.captureDevice.focusPointOfInterest = focusPointOfInterest;
-		self.captureDevice.focusMode = focusMode;
-		self.captureDevice.exposurePointOfInterest = exposurePointOfInterest;
-		self.captureDevice.exposureMode = exposureMode;
-		[self.captureDevice unlockForConfiguration];
-		return YES;
-	}
-	
-	return NO;
-}
-
-- (BOOL)setFocusMode:(AVCaptureFocusMode)focusMode interestPoint:(CGPoint)interest {
-	NSError *error;
-	
-	if ([self.captureDevice lockForConfiguration:&error]) {
-		self.captureDevice.focusPointOfInterest = interest;
-		self.captureDevice.focusMode = focusMode;
+		if ([self.captureDevice isFocusPointOfInterestSupported]) {
+			self.captureDevice.focusPointOfInterest = focusPointOfInterest;
+		}
+		if ([self.captureDevice isFocusModeSupported:focusMode]) {
+			self.captureDevice.focusMode = focusMode;
+		}
+		if ([self.captureDevice isExposurePointOfInterestSupported]) {
+			self.captureDevice.exposurePointOfInterest = exposurePointOfInterest;
+		}
+		if ([self.captureDevice isExposureModeSupported:exposureMode]) {
+			self.captureDevice.exposureMode = exposureMode;
+		}
+		if ([self.captureDevice isWhiteBalanceModeSupported:whiteBalanceMode]) {
+			self.captureDevice.whiteBalanceMode = whiteBalanceMode;
+		}
+		if (additional != nil) {
+			additional();
+		}
 		[self.captureDevice unlockForConfiguration];
 		return YES;
 	}
@@ -1130,31 +1280,49 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 	} else if ([keyPath isEqualToString:@"focusMode"]) {
 		AVCaptureFocusMode focusMode = [[change objectForKey:NSKeyValueChangeNewKey] integerValue];
 		if (focusMode == AVCaptureFocusModeLocked) {
-			self.focusStatusLabel.text = @"Focus: Locked";
+			self.focusStatusLabel.text = @"Focus Mode: Locked";
 		} else if (focusMode == AVCaptureFocusModeAutoFocus) {
-			self.focusStatusLabel.text = @"Focus: Auto";
+			self.focusStatusLabel.text = @"Focus Mode: Auto";
 		} else if (focusMode == AVCaptureFocusModeContinuousAutoFocus) {
-			self.focusStatusLabel.text = @"Focus: ContinuousAuto";
+			self.focusStatusLabel.text = @"Focus Mode: Continuous Auto";
 		}
 	} else if ([keyPath isEqualToString:@"exposureMode"]) {
 		AVCaptureExposureMode exposureMode = [[change objectForKey:NSKeyValueChangeNewKey] integerValue];
 		if (exposureMode == AVCaptureExposureModeLocked) {
-			self.exposureStatusLabel.text = @"Exposure: Locked";
+			self.exposureStatusLabel.text = @"Exposure Mode: Locked";
 		} else if (exposureMode == AVCaptureExposureModeAutoExpose) {
-			self.exposureStatusLabel.text = @"Exposure: Auto";
+			self.exposureStatusLabel.text = @"Exposure Mode: Auto";
 		} else if (exposureMode == AVCaptureExposureModeContinuousAutoExposure) {
-			self.exposureStatusLabel.text = @"Exposure: ContinuousAuto";
+			self.exposureStatusLabel.text = @"Exposure Mode: Continuous Auto";
 		} else if (exposureMode == AVCaptureExposureModeCustom) {
-			self.exposureStatusLabel.text = @"Exposure: Custom";
+			self.exposureStatusLabel.text = @"Exposure Mode: Custom";
 		}
 	} else if ([keyPath isEqualToString:@"exposureDuration"]) {
 		CMTime time;
 		[[change objectForKey:NSKeyValueChangeNewKey] getValue:&time];
 		Float64 exposureDuration = CMTimeGetSeconds(time);
-		self.exposureDurationLabel.text = [NSString stringWithFormat:@"%0.3fs", exposureDuration];
+		self.exposureDurationValueLabel.text = [NSString stringWithFormat:@"%0.3fs", exposureDuration];
 	} else if ([keyPath isEqualToString:@"lensPosition"]) {
 		float lensPosition = [[change objectForKey:NSKeyValueChangeNewKey] floatValue];
 		self.focusLensPositionLabel.text = [NSString stringWithFormat:@"%0.3f", lensPosition];
+	} else if ([keyPath isEqualToString:@"whiteBalanceMode"]) {
+		AVCaptureWhiteBalanceMode whiteBalanceMode = [[change objectForKey:NSKeyValueChangeNewKey] integerValue];
+		if (whiteBalanceMode == AVCaptureWhiteBalanceModeLocked) {
+			self.wbStatusLabel.text = @"White Balance Mode: Locked";
+		} else if (whiteBalanceMode == AVCaptureWhiteBalanceModeAutoWhiteBalance) {
+			self.wbStatusLabel.text = @"White Balance Mode: Auto";
+		} else if (whiteBalanceMode == AVCaptureWhiteBalanceModeContinuousAutoWhiteBalance) {
+			self.wbStatusLabel.text = @"White Balance Mode: Continuous Auto";
+		}
+	} else if ([keyPath isEqualToString:@"exposureTargetOffset"]) {
+		float exposureTargetOffset = [[change objectForKey:NSKeyValueChangeNewKey] floatValue];
+		self.evOffsetLabel.text = [NSString stringWithFormat:@"offset:%0.3fev", exposureTargetOffset];
+	} else if ([keyPath isEqualToString:@"exposureTargetBias"]) {
+		float exposureTargetBias = [[change objectForKey:NSKeyValueChangeNewKey] floatValue];
+		self.evBiasLabel.text = [NSString stringWithFormat:@"bias:%0.3fev", exposureTargetBias];
+	} else if ([keyPath isEqualToString:@"ISO"]) {
+		float ISO = [[change objectForKey:NSKeyValueChangeNewKey] floatValue];
+		self.isoValueLabel.text = [NSString stringWithFormat:@"%0.3fev", ISO];
 	}
 }
 
@@ -1180,6 +1348,23 @@ typedef NS_ENUM(NSInteger, ExposureState) {
 		return NO;
 	}
 	return YES;
+}
+
+- (CMTime)exposureDurationWithSliderValue:(float)sliderValue {
+	Float64 min = CMTimeGetSeconds(self.captureDevice.activeVideoMinFrameDuration);
+	Float64 max = CMTimeGetSeconds(self.captureDevice.activeVideoMaxFrameDuration);
+	Float64 distance = max - min;
+	Float64 exposureDuration = distance * sliderValue + min;
+	return CMTimeMakeWithSeconds(exposureDuration, 1000000000);
+}
+
+- (float)sliderValueWithExposureDuration:(CMTime)exposureDuration {
+	Float64 now = CMTimeGetSeconds(exposureDuration);
+	Float64 min = CMTimeGetSeconds(self.captureDevice.activeVideoMinFrameDuration);
+	Float64 max = CMTimeGetSeconds(self.captureDevice.activeVideoMaxFrameDuration);
+	Float64 distance = max - min;
+	Float64 sliderValue = (now - min) / distance;
+	return (float)sliderValue;
 }
 
 @end
