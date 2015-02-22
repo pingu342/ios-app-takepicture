@@ -25,7 +25,7 @@
 	self.imageView.contentMode = UIViewContentModeScaleAspectFit;
 	
 	self.scrollView.minimumZoomScale = 1.0;
-	self.scrollView.maximumZoomScale = 3.0;
+	self.scrollView.maximumZoomScale = 8.0;
 	self.scrollView.delegate = self;
 }
 
