@@ -1,19 +1,7 @@
 {
   "images" : [
     {
-      "idiom" : "universal",
-      "scale" : "1x",
-      "filename" : "undo.png"
-    },
-    {
-      "idiom" : "universal",
-      "scale" : "2x",
-      "filename" : "undo@2x.png"
-    },
-    {
-      "idiom" : "universal",
-      "scale" : "3x",
-      "filename" : "undo@3x.png"
+      "idiom" : "universal"
     }
   ],
   "info" : {
